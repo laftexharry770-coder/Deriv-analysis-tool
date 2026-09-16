@@ -13,7 +13,11 @@
     ['1HZ150V', 'Volatility 150 (1s) Index'], ['1HZ250V', 'Volatility 250 (1s) Index'], ['1HZ300V', 'Volatility 300 (1s) Index']
   ].map(([symbol, name]) => ({ symbol, name, pipSize: null }));
   const VOL_RE = /^Volatility (\d+)( \(1s\))? Index$/;
+  // Deriv's new public market-data socket needs no app id or token (verified 2026-09-16); the legacy v3
+  // gateway is used only when a legacy (non-pat_) API token is configured.
+  const PUBLIC_ENDPOINT = 'wss://api.derivws.com/trading/v1/options/ws/public';
   const ENDPOINT = 'wss://ws.derivws.com/websockets/v3?app_id=';
+  const legacyToken = (t) => { const v = String(t || '').trim(); return v && !/^pat_/i.test(v) ? v : ''; };
   const pipDigits = (pip) => { if (pip == null) return null; const s = String(pip); const i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; };
 
   class DerivFeed extends util.EventBus {
@@ -35,13 +39,15 @@
       if (old && old.readyState < 2) { try { old.close(); } catch (e) { /* ignore */ } } // never leave a live socket dangling
       this._online = false;
       this.emit('status', { state: 'connecting', kind: 'live' });
-      const ws = new this._WS(ENDPOINT + encodeURIComponent(this.settings.appId || '1089')); this._ws = ws;
+      const token = legacyToken(this.settings.token);
+      this._legacy = !!token;
+      const ws = new this._WS(token ? ENDPOINT + encodeURIComponent(this.settings.appId || '1089') : PUBLIC_ENDPOINT); this._ws = ws;
       const reconnecting = this._attempt > 0;
       ws.onopen = () => {
         this._attempt = 0;
         if (reconnecting) this._send({ forget_all: 'ticks' });
         this._send({ time: 1, req_id: 1 });
-        if (this.settings.token) { this.emit('status', { state: 'authorizing', kind: 'live' }); this._send({ authorize: this.settings.token, req_id: 2 }); }
+        if (token) { this.emit('status', { state: 'authorizing', kind: 'live' }); this._send({ authorize: token, req_id: 2 }); }
         else { this._setOnline(); if (reconnecting && this._universe.length) this._subscribeAll(); else this._discover(); }
         this._later(() => this._ping(), 30000);
       };
@@ -57,7 +63,7 @@
       };
     }
     _ping() { if (this._stopped || !this._ws || this._ws.readyState !== 1) return; this._pingSentAt = this._now(); this._send({ ping: 1 }); this._later(() => this._ping(), 30000); }
-    _discover() { this._send({ active_symbols: 'brief', product_type: 'basic', req_id: 3 }); }
+    _discover() { this._send({ active_symbols: 'brief', req_id: 3 }); }
     _subscribeAll() {
       this._universe.forEach((s, i) => this._later(() => this._send({ ticks_history: s.symbol, count: 300, end: 'latest', style: 'ticks', subscribe: 1, req_id: this._reqId++ }), 60 * i));
     }
@@ -72,8 +78,10 @@
         case 'ping': this.emit('latency', { rttMs: this._now() - this._pingSentAt, offsetSec: null }); break;
         case 'authorize': this._setOnline(); if (this._universe.length) this._subscribeAll(); else this._discover(); break;
         case 'active_symbols': {
-          const list = (m.active_symbols || []).filter(s => s.market === 'synthetic_index' && VOL_RE.test(s.display_name))
-            .map(s => { const mm = VOL_RE.exec(s.display_name); return { symbol: s.symbol, name: s.display_name, pipSize: pipDigits(s.pip), _n: Number(mm[1]), _s: mm[2] ? 1 : 0 }; })
+          // new public API: underlying_symbol / underlying_symbol_name / pip_size; legacy: symbol / display_name / pip
+          const list = (m.active_symbols || []).map(s => ({ symbol: s.underlying_symbol || s.symbol, name: s.underlying_symbol_name || s.display_name || '', market: s.market, pip: s.pip_size != null ? s.pip_size : s.pip }))
+            .filter(s => s.market === 'synthetic_index' && VOL_RE.test(s.name))
+            .map(s => { const mm = VOL_RE.exec(s.name); return { symbol: s.symbol, name: s.name, pipSize: pipDigits(s.pip), _n: Number(mm[1]), _s: mm[2] ? 1 : 0 }; })
             .sort((a, b) => a._n - b._n || a._s - b._s).map(({ symbol, name, pipSize }) => ({ symbol, name, pipSize }));
           if (!list.length) { this.emit('universe-empty'); break; }
           this._universe = list; this._setOnline(); this.emit('universe', list.slice()); this._subscribeAll(); break;
@@ -85,5 +93,5 @@
     }
     stop() { this._stopped = true; for (const id of this._timers) this._clearTimeout(id); this._timers = []; const ws = this._ws; this._ws = null; if (ws) { try { ws.close(); } catch (e) { /* ignore */ } } this._online = false; }
   }
-  return { DerivFeed, STATIC_SYMBOLS, VOL_RE, pipDigits, ENDPOINT };
+  return { DerivFeed, STATIC_SYMBOLS, VOL_RE, pipDigits, ENDPOINT, PUBLIC_ENDPOINT };
 });

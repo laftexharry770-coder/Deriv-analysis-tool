@@ -174,7 +174,7 @@
         hideBanner(); refreshDerived(); renderAll(); return;
       }
       if (event === 'universe-empty') {
-        showBanner({ title: 'Deriv returned no tradable symbols for this connection', body: 'Unauthenticated connections from this region can receive an empty market list. Add your own read-scope Deriv API token in Settings, try the static symbol list, or run the simulator.',
+        showBanner({ title: 'Deriv returned no tradable symbols for this connection', body: 'The market list came back empty. Try the static symbol list, run the simulator, or (legacy tokens only) add a Deriv API token in Settings.',
           actions: [{ label: 'Add API token', id: 'settings', primary: true }, { label: 'Use static list', id: 'static' }, { label: 'Use simulator', id: 'sim' }] });
         renderAll(); return;
       }

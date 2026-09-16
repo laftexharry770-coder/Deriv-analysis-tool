@@ -12,8 +12,8 @@
     const s = state.settings;
     el.innerHTML = C.pageTitle('⚙', 'Analysis settings', 'Connection, windows, sniper gates, automation') + '<form class="form" id="settings-form" autocomplete="off">'
       + '<fieldset><legend>Connection</legend>'
-      + '<div class="field-row">' + '<div class="field"><label for="appId">Deriv app_id</label><input type="text" id="appId" name="appId" value="' + C.esc(s.appId) + '"><div class="hint">1089 is the public test id; register your own at api.deriv.com</div></div>'
-      + '<div class="field"><label for="token">API token (read scope)</label><input type="password" id="token" name="token" value="' + C.esc(s.token) + '" placeholder="paste your own token"><div class="hint">Stored only in this browser. Needed when Deriv serves an empty market list to unauthenticated connections.</div></div></div>'
+      + '<div class="field-row">' + '<div class="field"><label for="appId">Deriv app_id</label><input type="text" id="appId" name="appId" value="' + C.esc(s.appId) + '"><div class="hint">only used with a legacy token; the live feed itself needs no app id</div></div>'
+      + '<div class="field"><label for="token">API token (read scope)</label><input type="password" id="token" name="token" value="' + C.esc(s.token) + '" placeholder="paste your own token"><div class="hint">Optional. The live feed uses the public Deriv market-data socket and needs no token. Leave empty unless you have a legacy (non-pat_) token.</div></div></div>'
       + chk('simulator', 'Use the built-in simulator instead of the live feed', s.simulator, 'Uniform random digits at real Deriv cadence and precision — every screen is labelled SIMULATED and results are tracked separately.')
       + '</fieldset>'
       + '<fieldset><legend>Analysis</legend><div class="field-row">'

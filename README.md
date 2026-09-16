@@ -29,8 +29,10 @@ Live site: <https://laftexharry770-coder.github.io/Deriv-analysis-tool/>
    `admin_phones` tables, and the `ADMIN_EMAILS` / `ADMIN_PHONES` secrets).
 4. **GitHub Pages** — repo *Settings → Pages → Deploy from branch → `main` / root* (one click). Every later
    deploy: run `python tools/bump-version.py` (cache-busts the assets), commit, push.
-5. **Deriv feed** — unauthenticated connections from Kenya currently get an empty market list. Paste a
-   read-scope Deriv API token (app.deriv.com → Account → API token) in Settings, or use the simulator.
+5. **Deriv feed** — uses Deriv's public market-data socket (`wss://api.derivws.com/trading/v1/options/ws/public`):
+   no app id and no token needed. The `pat_` tokens and alphanumeric App IDs from the new api.deriv.com dashboard belong
+   to Deriv's OAuth/REST platform and are rejected by the classic gateway — you don't need them. The simulator remains
+   available in Settings for demos.
 
 ## How a user gets in
 

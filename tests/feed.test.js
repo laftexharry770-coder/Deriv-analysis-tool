@@ -27,9 +27,9 @@ test('pipDigits', () => { assert.equal(pipDigits(0.001), 3); assert.equal(pipDig
 
 test('discovers, filters, sorts and subscribes volatility symbols', () => {
   const { f, ev, flush } = harness({ appId: '1089', token: '' });
-  f.start(); const ws = FakeWS.last; assert.match(ws.url, /app_id=1089$/);
+  f.start(); const ws = FakeWS.last; assert.equal(ws.url, 'wss://api.derivws.com/trading/v1/options/ws/public');
   ws.open();
-  assert.ok(ws.sent.some(m => m.time === 1)); assert.ok(ws.sent.some(m => m.active_symbols === 'brief'));
+  assert.ok(ws.sent.some(m => m.time === 1)); assert.ok(ws.sent.some(m => m.active_symbols === 'brief' && m.product_type === undefined));
   ws.recv({ msg_type: 'active_symbols', active_symbols: SYMS, req_id: 3 });
   const uni = ev.find(e => e[0] === 'universe')[1];
   assert.deepEqual(uni.map(s => s.symbol), ['R_10', '1HZ10V', 'R_100']);
@@ -60,7 +60,7 @@ test('empty universe emits universe-empty; static list fallback subscribes 16 sy
 
 test('token: authorize precedes discovery; authorize error surfaces', () => {
   const { f, ev } = harness({ appId: '1089', token: 'tok' });
-  f.start(); const ws = FakeWS.last; ws.open();
+  f.start(); const ws = FakeWS.last; assert.match(ws.url, /ws\.derivws\.com.*app_id=1089$/); ws.open();
   assert.ok(ws.sent.some(m => m.authorize === 'tok')); assert.ok(!ws.sent.some(m => m.active_symbols));
   assert.equal(ev.filter(e => e[0] === 'status').pop()[1].state, 'authorizing');
   ws.recv({ msg_type: 'authorize', authorize: { loginid: 'CR1' }, req_id: 2 });
@@ -86,4 +86,17 @@ test('reconnect with back-off and forget_all + resubscribe', () => {
   timers.splice(timers.indexOf(r2), 1); r2.fn(); FakeWS.last.close(); // attempt fails without opening
   assert.ok(timers.some(t => t.ms === 2000), 'consecutive failure doubles the back-off');
   f.stop();
+});
+
+test('new public API field names are discovered; pat_ tokens do not force the legacy gateway', () => {
+  const { f, ev } = harness({ appId: '1089', token: 'pat_abc' });
+  f.start(); const ws = FakeWS.last; assert.equal(ws.url, 'wss://api.derivws.com/trading/v1/options/ws/public'); ws.open();
+  assert.ok(!ws.sent.some(m => m.authorize), 'no authorize on the public socket');
+  ws.recv({ msg_type: 'active_symbols', active_symbols: [
+    { underlying_symbol: 'R_50', underlying_symbol_name: 'Volatility 50 Index', market: 'synthetic_index', pip_size: 0.0001 },
+    { underlying_symbol: '1HZ15V', underlying_symbol_name: 'Volatility 15 (1s) Index', market: 'synthetic_index', pip_size: 0.001 },
+    { underlying_symbol: 'frxEURUSD', underlying_symbol_name: 'EUR/USD', market: 'forex', pip_size: 0.00001 }
+  ] });
+  const uni = ev.find(e => e[0] === 'universe')[1];
+  assert.deepEqual(uni.map(s => [s.symbol, s.pipSize]), [['1HZ15V', 3], ['R_50', 4]]);
 });
