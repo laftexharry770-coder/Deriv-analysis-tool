@@ -17,6 +17,7 @@
     const open = (on) => { drawer.classList.toggle('open', on); scrim.hidden = !on; toggle.setAttribute('aria-expanded', on ? 'true' : 'false'); };
     toggle.addEventListener('click', () => open(!drawer.classList.contains('open')));
     scrim.addEventListener('click', () => open(false));
+    const closeBtn = $('drawer-close'); if (closeBtn) closeBtn.addEventListener('click', () => open(false));
     drawer.addEventListener('click', (e) => {
       const a = e.target.closest('[data-page]'); if (!a) return;
       e.preventDefault(); open(false); onNavigate(a.getAttribute('data-page'));

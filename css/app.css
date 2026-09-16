@@ -466,3 +466,14 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .strip-latest { text-align: right; }
 .strip .latest { font-size: 34px; font-weight: 800; color: #7fb0ff; line-height: 1; }
 @media (max-width: 480px) { .strip-body { grid-template-columns: 1fr auto; } .strip-body > div:first-child { grid-column: 1 / -1; } .strip-digits { grid-column: 1; } .strip-latest { grid-column: 2; } }
+
+/* ===== menu exactly like the reference: brand row, uppercase items, blue-filled active ===== */
+.drawer-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; padding: 8px 10px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.drawer-brand .logo { color: var(--accent); display: inline-flex; }
+.drawer-close { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; }
+.drawer a { text-transform: uppercase; font-size: 12px; letter-spacing: .08em; font-weight: 700; padding: 12px 12px; margin: 2px 0; }
+.drawer a.active { background: var(--accent); color: var(--accent-ink); }
+.drawer a.active .nav-ic { color: var(--accent-ink); }
+#nav-logout { margin-top: auto; color: var(--muted); }
+.drawer-foot { display: none; }
+@media (min-width: 900px) { .drawer-close { display: none; } }
