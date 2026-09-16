@@ -1,7 +1,7 @@
 // auth: signup · verify_email · resend · reset_request · reset_confirm
 // Public endpoint (verify_jwt off): every action authenticates by email + code, never by session.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { CORS, json, fail, serviceClient, readBody, normEmail, validEmail, validPhone, issueCode, consumeCode, secondsSinceLastCode, isAdminIdentity } from '../_shared/common.ts';
+import { CORS, json, fail, serviceClient, readBody, normEmail, validEmail, validPhone, issueCode, consumeCode, secondsSinceLastCode, isAdminEmail } from '../_shared/common.ts';
 import { mailConfigured, sendMail, codeEmail } from '../_shared/mail.ts';
 
 async function findUserByEmail(sb: ReturnType<typeof serviceClient>, email: string) {
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       if (!validEmail(email)) return fail('EMAIL_INVALID');
       if (password.length < 8) return fail('PASSWORD_TOO_SHORT');
       if (!validPhone(phone)) return fail('PHONE_INVALID');
-      const admin = isAdminIdentity(email, phone); // owner: no verification, no payment needed
+      const admin = isAdminEmail(email); // the owner email: no verification, no payment needed
       const existing = await findUserByEmail(sb, email);
       if (existing && existing.email_verified && !admin) return fail('EMAIL_EXISTS');
       let userId: string; let accountId: string | undefined;

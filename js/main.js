@@ -15,7 +15,7 @@
   };
   const CFG = (root.MS && root.MS.config) || { freePages: ['dashboard', 'frequency', 'account', 'upgrade', 'settings'], priceUsd: 70, premiumDays: 30, contact: {} };
 
-  const PHASE_LABELS = ['Scanning volatility markets', 'Collecting recent tick data', 'Extracting last digits', 'Ranking markets by deviation', 'Checking sniper gates', 'Picking the best market'];
+  const PHASE_LABELS = ['Scanning volatility markets', 'Collecting recent tick data', 'Extracting last digits', 'Comparing digit distributions', 'Checking sniper gates', 'Selecting the best market'];
   const ALL_PAGES = ['dashboard', 'scanner', 'matches', 'signal', 'frequency', 'accuracy', 'settings', 'account', 'upgrade', 'support', 'admin'];
   const PREDICT_STEPS = ['Pulling Deriv tick history', 'Counting appearances per digit', 'Ranking digits by frequency', 'Comparing against the 10% baseline', 'Estimating win probability'];
   const DATA_PAGES = ['dashboard', 'frequency', 'matches'];
@@ -76,7 +76,7 @@
       else if (active && active.stale) feedText = 'STALE';
       else if (active && active.ticks.length) feedText = 'LIVE';
       else feedText = 'WAITING';
-      ui.setPills({ system, feed: feedText, lagMs: active && active.lagEma != null ? active.lagEma * 1000 : null });
+      ui.setPills({ system, feed: feedText });
       renderChip();
     }
 
@@ -118,11 +118,20 @@
       if (ui && ui.render) ui.render(state);
     }
     function renderAll() { refreshDerived(); updatePills(); renderPage(state.page); }
-    function renderData() {
-      refreshDerived(); updatePills();
-      if (state.page === 'matches') { const ui = root.MS.ui && root.MS.ui.matches; if (ui && ui.renderLive && doc && doc.getElementById('md-live')) ui.renderLive(state); else renderPage('matches'); return; }
-      if (DATA_PAGES.includes(state.page)) renderPage(state.page);
+    // Live (per-tick) updates patch only the parts of the page that change. They are skipped while the tab is hidden
+    // and deferred while the user is scrolling, so a phone never stutters because a tick arrived mid-swipe.
+    let liveDeferred = false;
+    function renderData(derivedFresh) {
+      if (!derivedFresh) refreshDerived();
+      updatePills();
+      if (!DATA_PAGES.includes(state.page)) return;
+      if (doc && doc.hidden) return;
+      if (scrolling()) { if (!liveDeferred) { liveDeferred = true; setTimeoutFn(() => { liveDeferred = false; renderData(true); }, 220); } return; }
+      const ui = root.MS.ui && root.MS.ui[state.page];
+      if (ui && ui.renderLive && doc && doc.getElementById('page-' + state.page) && doc.getElementById('page-' + state.page).children.length) ui.renderLive(state); else renderPage(state.page);
     }
+    let lastScrollAt = 0;
+    function scrolling() { return now() - lastScrollAt < 180; }
     function renderCountdownOnly() { if (!doc || state.page !== 'signal') return; const ui = root.MS.ui && root.MS.ui.signal; if (ui && ui.renderCountdown) ui.renderCountdown(state); }
 
     function showBanner(banner) {
@@ -133,6 +142,7 @@
     function toast(message, kind) { const ui = shell(); if (ui) ui.toast(message, kind); }
 
     function mountUi() {
+      if (doc && doc.addEventListener && !mountUi._scroll) { mountUi._scroll = true; doc.addEventListener('scroll', () => { lastScrollAt = now(); }, { passive: true, capture: true }); doc.addEventListener('touchmove', () => { lastScrollAt = now(); }, { passive: true }); }
       if (!doc || uiMounted || !root.MS || !root.MS.ui || !root.MS.ui.shell) return;
       const ui = root.MS.ui;
       ui.shell.mount(doc, { onNavigate: actions.navigate });
@@ -146,8 +156,7 @@
     function updateActiveIfNeeded(symbol) {
       if (!state.active) state.active = symbol;
       if (symbol !== state.active) return false;
-      const ms = now(); if (ms - lastActiveRenderAt < 250) return false;
-      lastActiveRenderAt = ms; refreshDerived(); return true;
+      lastActiveRenderAt = now(); refreshDerived(); return true;
     }
 
     function resolveOpenSignals(symbol) {
@@ -176,7 +185,7 @@
         const added = state.book.addTick(payload, now());
         const resolved = added ? resolveOpenSignals(payload.symbol) : false;
         const activeChanged = added ? updateActiveIfNeeded(payload.symbol) : false;
-        if (resolved) renderAll(); else if (activeChanged) renderData();
+        if (resolved) renderAll(); else if (activeChanged) renderData(true);
         return;
       }
       if (event === 'symbol-error') { state.book.markUnavailable(payload.symbol, payload.code || payload.message); toast(payload.symbol + ' unavailable: ' + payload.message, 'warn'); renderAll(); return; }

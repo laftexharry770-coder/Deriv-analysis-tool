@@ -24,9 +24,9 @@ Live site: <https://laftexharry770-coder.github.io/Deriv-analysis-tool/>
    Until these exist, the tool still works: approvals show the activation code in Admin so you can send it on WhatsApp.
 2. **Your receiving details** — log in, open **Admin → Your receiving details** and fill in Skrill email,
    Binance Pay ID, USDT address + network, bank details, M-Pesa number. They appear on every user's Upgrade page.
-3. **Owner accounts** — `mwangiherbert225@gmail.com`, `thecorinthian999@gmail.com` and phone `+254758584977`
-   log in without verification and have every feature (set in `js/config.js`, the `admin_emails` /
-   `admin_phones` tables, and the `ADMIN_EMAILS` / `ADMIN_PHONES` secrets).
+3. **Owner account** — only `thecorinthian999@gmail.com` sees the Admin panel; it logs in without verification
+   and has every feature (set in `js/config.js`, the `admin_emails` table, and the optional `ADMIN_EMAILS` secret —
+   all three must agree).
 4. **GitHub Pages** — repo *Settings → Pages → Deploy from branch → `main` / root* (one click). Every later
    deploy: run `python tools/bump-version.py` (cache-busts the assets), commit, push.
 5. **Deriv feed** — uses Deriv's public market-data socket (`wss://api.derivws.com/trading/v1/options/ws/public`):
@@ -48,8 +48,14 @@ Frequency Graph · Accuracy · Settings · Account · Upgrade · Support · Admi
 
 ## What the numbers mean
 
-- **Signal strength (0–100)** — percentile of the digit's blended z-score under a uniform null. Not a win probability.
-- **est. probability** — shrunk estimate of the digit hitting (for DIFFER: not hitting), always shown against the 10 % / 90 % base.
+- **The digit** — the reference tool's rule: count how often each digit appeared in the sample (Sample size, default
+  200 ticks; PRO weighs the newest 60 % double), rank the digits by that appearance rate and pick the top one
+  (DIFFER: the bottom one). Ties go to the digit seen most recently.
+- **Signal strength (0–100)** — percentile of that digit's z-score against the 10 % uniform baseline. Not a win probability.
+- **appearance rate** — the digit's share of the sample (for DIFFER: the share of the other nine digits), always shown
+  against the 10 % / 90 % base. Digits are random: the next tick is never guaranteed, which is why Accuracy exists.
+- **No latency figures** — the tool does not measure or gate on tick lag; the live circle and strip repaint on every
+  tick of the active market, and only the parts that changed are redrawn (nothing stalls while you scroll on a phone).
 - **Accuracy** — real win-rate of every call the tool issued, scored on the actual tick that followed, with a 95 % interval.
 
 ## Redeploying an Edge Function

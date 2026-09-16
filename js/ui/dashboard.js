@@ -11,7 +11,7 @@
     const am = state.active ? state.book.get(state.active) : null;
     const feedTxt = fs.kind === 'sim' ? 'SIMULATED' : (fs.state !== 'online' ? fs.state.toUpperCase() : (am && am.stale ? 'STALE' : (am && am.ticks.length ? 'CONNECTED' : 'WAITING')));
     const feedKind = feedTxt === 'CONNECTED' ? 'status' : feedTxt === 'SIMULATED' ? 'sim' : feedTxt === 'STALE' ? 'bad' : 'warn';
-    return '<div class="card"><div class="status-row"><span class="k">System</span>' + C.pill(sysTxt, sysKind) + '</div>'
+    return '<div class="card status-card"><div class="status-row"><span class="k">System</span>' + C.pill(sysTxt, sysKind) + '</div>'
       + '<div class="status-row"><span class="k">Tick feed</span>' + C.pill(feedTxt, feedKind) + '</div>'
       + '<div class="status-row"><span class="k">Market</span><span class="mono">' + C.esc(am ? am.name : '—') + '</span></div></div>';
   }
@@ -37,17 +37,19 @@
     return '<div class="card"><div class="card-head"><h3>Analysis modules</h3></div><div class="mods">' + mods.map(([id, ic, t, d]) => '<button type="button" class="mod" data-page="' + id + '"><span class="mod-ic">' + ic + '</span><span><b>' + t + '</b><small>' + d + '</small><em>OPEN →</em></span></button>').join('') + '</div></div>';
   }
 
-  function grid(state) {
-    const rows = (state.overview || []).map(o => {
+  function gridRows(state) {
+    return (state.overview || []).map(o => {
       const st = o.stats;
       const status = !o.available ? '<span class="bad-t">unavailable</span>' : o.stale ? '<span class="warn-t">stale</span>' : st.n < state.settings.minSample ? '<span class="warn-t">filling ' + st.n + '/' + state.settings.window + '</span>' : '<span class="ok-t">ready</span>';
       return [C.esc(o.symbol), C.esc(o.name), '<span class="num">' + (st.lastDigit == null ? '–' : st.lastDigit) + '</span>',
         st.hot == null ? '–' : '<span class="num ' + (st.cls[st.hot] === 'above' ? 'acc-t' : '') + '">' + st.hot + ' <span class="muted">' + C.pct(st.freq[st.hot]) + '</span></span>',
-        '<span class="num">' + st.deviationScore.toFixed(0) + '</span>', '<span class="num">' + st.tps.toFixed(2) + '</span>',
-        '<span class="num">' + (o.lagEma == null ? '–' : Math.round(o.lagEma * 1000) + ' ms') + '</span>', status];
+        '<span class="num">' + st.deviationScore.toFixed(0) + '</span>', '<span class="num">' + st.tps.toFixed(2) + '</span>', status];
     });
+  }
+  function grid(state) {
+    const rows = gridRows(state);
     return '<div class="card"><div class="card-head"><h3>All volatility markets</h3><div class="sub">tap a row to make it active</div></div>'
-      + C.table(['Symbol', 'Market', 'Last', 'Hot digit', 'Dev', 't/s', 'Lag', 'Status'], rows, { empty: 'No markets yet — waiting for the feed', rowAttrs: (i) => 'data-symbol="' + C.esc(state.overview[i].symbol) + '"' + (state.overview[i].symbol === state.active ? ' class="active"' : '') }) + '</div>';
+      + C.table(['Symbol', 'Market', 'Last', 'Hot digit', 'Dev', 't/s', 'Status'], rows, { empty: 'No markets yet — waiting for the feed', rowAttrs: (i) => 'data-symbol="' + C.esc(state.overview[i].symbol) + '"' + (state.overview[i].symbol === state.active ? ' class="active"' : '') }) + '</div>';
   }
 
   function render(state) {
@@ -58,5 +60,22 @@
     el.querySelectorAll('.mod[data-page]').forEach(b => b.addEventListener('click', () => act.navigate(b.getAttribute('data-page'))));
   }
 
-  root.MS.ui.dashboard = { mount(rootEl, actions) { el = rootEl; act = actions; }, render };
+  // per-tick partial update: only the tick strip, the frequency bars and the market table change — the rest of the
+  // page (and the scroll position) stays put, which keeps phones from stuttering on every tick
+  function renderLive(state) {
+    if (!el) return;
+    const m = state.active ? state.book.get(state.active) : null, st = state.activeStats;
+    if (!m || !st || !st.n) { render(state); return; }
+    const stripEl = el.querySelector('.strip'), barsEl = el.querySelector('.bars'), body = el.querySelector('tbody');
+    if (!stripEl || !barsEl || !body) { render(state); return; }
+    const statusEl = el.querySelector('.status-card'); if (statusEl) { const fresh = statusRows(state); if (statusEl.outerHTML !== fresh) statusEl.outerHTML = fresh; }
+    stripEl.outerHTML = C.tickStrip(m, st, { simulated: state.feedStatus && state.feedStatus.kind === 'sim' });
+    barsEl.outerHTML = C.digitBars(st, { highlight: st.hot });
+    const sub = el.querySelector('.card-head .sub'); if (sub) sub.textContent = st.n + ' ticks in sample · window ' + state.settings.window;
+    const rows = gridRows(state);
+    body.innerHTML = rows.map((r, i) => '<tr data-symbol="' + C.esc(state.overview[i].symbol) + '"' + (state.overview[i].symbol === state.active ? ' class="active"' : '') + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('');
+    body.querySelectorAll('tr[data-symbol]').forEach(tr => tr.addEventListener('click', () => act.setActive(tr.getAttribute('data-symbol'))));
+  }
+
+  root.MS.ui.dashboard = { mount(rootEl, actions) { el = rootEl; act = actions; }, render, renderLive };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

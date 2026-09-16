@@ -11,7 +11,7 @@
   const DEFAULT_SETTINGS = {
     window: 200, recent: 50, mode: 'standard', kappa: 200,
     minSample: 180, minZFull: 1.5, minZRecent: 1.0, recencyGate: true, maxSinceLast: 10,
-    maxLagSec: 1.5, cooldownSec: 20,
+    cooldownSec: 20,
     entryWindowTicks: 5, horizonTicks: 1,
     autoRescan: false, autoRescanSec: 30, rescanOnExpiry: false, scanAnimMs: 3500, // scans run only when the user presses the button
     payoutMultiple: 8.9,
@@ -29,7 +29,7 @@
       zFull:    { pass: d != null && st.zFull[d] >= settings.minZFull, value: d == null ? 0 : st.zFull[d], need: settings.minZFull },
       zRecent:  { pass: d != null && st.zRecent[d] >= settings.minZRecent, value: d == null ? 0 : st.zRecent[d], need: settings.minZRecent },
       recency:  { pass: !settings.recencyGate || (d != null && st.sinceLast[d] <= settings.maxSinceLast), value: d == null ? null : st.sinceLast[d], need: settings.maxSinceLast },
-      feed:     { pass: !!m.available && !m.stale && (m.lagEma == null || m.lagEma <= settings.maxLagSec), value: m.lagEma, need: settings.maxLagSec },
+      feed:     { pass: !!m.available && !m.stale, value: !m.available ? 'unavailable' : (m.stale ? 'stale' : 'live'), need: 'live' },
       cooldown: { pass: nowMs - (m.lastSignalAt || 0) >= settings.cooldownSec * 1000, value: Math.round((nowMs - (m.lastSignalAt || 0)) / 1000), need: settings.cooldownSec }
     };
     const failed = Object.keys(gates).filter(k => !gates[k].pass);
@@ -50,7 +50,7 @@
     const c = st.cold;
     if (c == null) return null;
     const util = isNode ? require('./util.js') : root.MS.util;
-    const strength = 100 * util.normalCdf(-st.zBlend[c]);
+    const strength = 100 * util.normalCdf(-st.zFull[c]);
     return { digit: c, strength: Math.round(strength * 10) / 10, band: stats.bandFor(strength), probEst: 1 - st.pHat[c], zFull: st.zFull[c], zRecent: st.zRecent[c] };
   }
 

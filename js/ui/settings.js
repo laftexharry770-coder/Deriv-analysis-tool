@@ -22,7 +22,7 @@
       + '</fieldset>'
       + '<fieldset><legend>Sniper gates</legend><div class="field-row">'
       + num('minSample', 'Min sample (ticks)', s.minSample, '', 'min="20" max="1000"') + num('minZFull', 'Min z, full window', s.minZFull, 'default 1.5', 'min="0" max="6" step="0.1"')
-      + num('minZRecent', 'Min z, recent window', s.minZRecent, 'default 1.0', 'min="0" max="6" step="0.1"') + num('maxLagSec', 'Max feed lag (s)', s.maxLagSec, 'signals are refused above this', 'min="0.2" max="10" step="0.1"')
+      + num('minZRecent', 'Min z, recent window', s.minZRecent, 'default 1.0', 'min="0" max="6" step="0.1"')
       + num('cooldownSec', 'Per-market cooldown (s)', s.cooldownSec, '', 'min="0" max="600"') + num('maxSinceLast', 'Digit seen within (ticks)', s.maxSinceLast, 'recency gate threshold', 'min="1" max="200"') + '</div>'
       + chk('recencyGate', 'Require the hot digit to have appeared recently', s.recencyGate)
       + '</fieldset>'

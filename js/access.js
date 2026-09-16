@@ -19,10 +19,7 @@
     if (!profile) return false;
     if (profile.is_admin) return true;
     const admins = (cfg && cfg.adminEmails) || [];
-    if (admins.map((e) => String(e).toLowerCase()).includes(String(profile.email || '').toLowerCase())) return true;
-    const phones = ((cfg && cfg.adminPhones) || []).map((p) => String(p).replace(/\D/g, ''));
-    const mine = String(profile.phone || '').replace(/\D/g, '');
-    return !!mine && phones.includes(mine);
+    return admins.map((e) => String(e).toLowerCase()).includes(String(profile.email || '').toLowerCase());
   }
   /** Admins have every feature regardless of payment. */
   function hasFullAccess(profile, cfg, nowMs) { return isAdmin(profile, cfg) || isPremium(profile, nowMs); }

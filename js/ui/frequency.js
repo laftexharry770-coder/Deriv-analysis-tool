@@ -31,5 +31,16 @@
     el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => act.setFreq({ mode: b.getAttribute('data-mode') })));
   }
 
-  root.MS.ui.frequency = { mount(rootEl, actions) { el = rootEl; act = actions; }, render };
+  // per-tick partial update: bars, circles and the meta line; the selectors are left alone
+  function renderLive(state) {
+    if (!el) return;
+    const st = state.activeStats, f = state.freq || { mode: 'full' };
+    const bars = el.querySelector('.bars'), cir = el.querySelector('.circles');
+    if (!st || !st.n || !bars || !cir) { render(state); return; }
+    bars.outerHTML = C.digitBars(st, { highlight: st.hot, mode: f.mode });
+    cir.outerHTML = C.digitCircles(st, { lastDigit: st.lastDigit });
+    const meta = el.querySelector('.meta-line'); if (meta) meta.textContent = 'Top run: current run ' + st.currentRun + '× digit ' + st.lastDigit + ' · hot digit ' + st.hot + ' z ' + st.zBlend[st.hot].toFixed(2) + ' · market deviation ' + st.deviationScore.toFixed(0) + '/100 (χ² ' + st.chi2.toFixed(2) + ')';
+  }
+
+  root.MS.ui.frequency = { mount(rootEl, actions) { el = rootEl; act = actions; }, render, renderLive };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

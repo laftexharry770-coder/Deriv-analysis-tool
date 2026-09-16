@@ -3,16 +3,10 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 export const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 export const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-export const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') ?? 'mwangiherbert225@gmail.com,thecorinthian999@gmail.com')
+// The owner account. Only this email sees the Admin panel and may call the admin function; it also signs in
+// without verification and has full access without payment.
+export const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') ?? 'thecorinthian999@gmail.com')
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-export const ADMIN_PHONES = (Deno.env.get('ADMIN_PHONES') ?? '+254758584977')
-  .split(',').map((s) => s.replace(/\D/g, '')).filter(Boolean);
-/** Owner identity by email or phone: signs in without verification, full access without payment. */
-export function isAdminIdentity(email: string | null | undefined, phone: string | null | undefined): boolean {
-  if (isAdminEmail(email)) return true;
-  const d = String(phone ?? '').replace(/\D/g, '');
-  return !!d && ADMIN_PHONES.includes(d);
-}
 export const PREMIUM_DAYS = Number(Deno.env.get('PREMIUM_DAYS') ?? '30');
 
 export const CORS = {

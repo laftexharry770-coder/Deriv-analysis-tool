@@ -10,9 +10,8 @@
     premiumDays: 30,
     // pages a signed-in but unpaid account may use; everything else needs PREMIUM
     freePages: ['account', 'upgrade', 'support'],
-    // owner accounts: full access without email verification or payment (also enforced server-side)
-    adminEmails: ['mwangiherbert225@gmail.com', 'thecorinthian999@gmail.com'],
-    adminPhones: ['+254758584977'],
+    // the ONE owner account: Admin panel, full access without email verification or payment (also enforced server-side)
+    adminEmails: ['thecorinthian999@gmail.com'],
     // optional: a stated accuracy range shown on the landing page (e.g. '79% – 95%'); null = describe the live scoring instead
     statedAccuracy: null,
     contact: {

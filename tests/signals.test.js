@@ -4,7 +4,7 @@ const S = require('../js/signals.js');
 
 function mk(digits, interval = 2, start = 1000) { return digits.map((d, i) => ({ epoch: start + i * interval, quote: 100 + d / 100, digit: d })); }
 function market(symbol, digits, extra) {
-  return Object.assign({ symbol, name: symbol, ticks: mk(digits, /^1HZ/.test(symbol) ? 1 : 2), available: true, stale: false, lagEma: 0.3, lastSignalAt: 0 }, extra || {});
+  return Object.assign({ symbol, name: symbol, ticks: mk(digits, /^1HZ/.test(symbol) ? 1 : 2), available: true, stale: false, lastSignalAt: 0 }, extra || {});
 }
 // digit 7 hot: 40 of 200 overall and 11 of last 50, last tick is 7
 const hotDigits = (() => { const a = []; for (let i = 0; i < 200; i++) a.push(i % 10); for (let i = 0; i < 14; i++) a[i * 10 + 3] = 7; for (let i = 150; i < 200; i += 10) a[i + 1] = 7; a[199] = 7; return a; })();
@@ -27,7 +27,7 @@ test('hot market passes all gates and produces a signal', () => {
   assert.equal(sig.issueEpoch, 1000 + 199 * 2);
   assert.equal(sig.status, 'live'); assert.equal(sig.outcome, null); assert.equal(sig.horizonTicks, 1);
   assert.ok(sig.strength > 80 && sig.strength <= 100);
-  assert.ok(sig.probEst > 0.1 && sig.probEst < 0.2);
+  assert.ok(Math.abs(sig.probEst - 40 / 200) < 1e-9); // appearance rate of digit 7 in the sample
   assert.match(sig.reason, /Digit 7 appeared 40× in the last 200 ticks/);
   assert.equal(r.ranked[0].symbol, 'R_75');
   assert.equal(sig.source, 'live');
@@ -43,7 +43,7 @@ test('each gate blocks independently', () => {
   const late = base(); late.ticks = late.ticks.concat(mk([1, 2, 3, 4, 5, 6, 8, 9, 0, 1, 2, 3], 2, 1000 + 200 * 2));
   assert.equal(S.evaluateMarket(late, s, NOW).gates.recency.pass, false);
   assert.equal(S.evaluateMarket(late, Object.assign({}, s, { recencyGate: false }), NOW).gates.recency.pass, true);
-  assert.equal(S.evaluateMarket(market('R_75', hotDigits, { lagEma: 3 }), s, NOW).gates.feed.pass, false);
+  assert.equal(S.evaluateMarket(market('R_75', hotDigits, { available: false }), s, NOW).gates.feed.pass, false);
   assert.equal(S.evaluateMarket(market('R_75', hotDigits, { stale: true }), s, NOW).gates.feed.pass, false);
   assert.equal(S.evaluateMarket(market('R_75', hotDigits, { lastSignalAt: NOW - 5000 }), s, NOW).gates.cooldown.pass, false);
 });

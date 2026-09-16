@@ -14,14 +14,12 @@ test('universe, history, ticks, digits, cap', () => {
   assert.equal(b.get('R_100').ticks[4].epoch, 114);
 });
 
-test('lag EMA and staleness', () => {
+test('staleness', () => {
   const b = new MarketBook();
   b.setUniverse([{ symbol: '1HZ10V', name: 'Volatility 10 (1s) Index' }]);
   b.addTick({ symbol: '1HZ10V', epoch: 100, quote: 9660.78, pipSize: 2 }, 100_400);
-  assert.ok(Math.abs(b.get('1HZ10V').lagEma - 0.4) < 1e-9);
   b.addTick({ symbol: '1HZ10V', epoch: 101, quote: 9660.79, pipSize: 2 }, 101_800);
-  assert.ok(b.get('1HZ10V').lagEma > 0.4 && b.get('1HZ10V').lagEma < 0.8);
-  assert.ok(Math.abs(b.get('1HZ10V').lagMax - 0.8) < 1e-9);
+  assert.equal(b.get('1HZ10V').lastTickMs, 101_800);
   assert.equal(b.isStale('1HZ10V', 101_800 + 4000), false);
   assert.equal(b.isStale('1HZ10V', 101_800 + 5001), true);
   b.refreshStale(101_800 + 5001);

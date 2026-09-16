@@ -52,20 +52,29 @@
       zFull[d] = sdFull ? (freq[d] - P0) / sdFull : 0;
       zRecent[d] = sdR ? (freqR[d] - P0) / sdR : 0;
       zBlend[d] = aF * zFull[d] + aR * zRecent[d];
-      strength[d] = 100 * util.normalCdf(zBlend[d]);
+      // strength = how far the digit's appearance rate sits above the 10% baseline (percentile of its z-score)
+      strength[d] = 100 * util.normalCdf(zFull[d]);
       band[d] = bandFor(strength[d]);
-      pHat[d] = (nEff + kappa) ? (freq[d] * nEff + kappa * P0) / (nEff + kappa) : P0;
-      cls[d] = zBlend[d] >= 1 ? 'above' : (zBlend[d] <= -1 ? 'below' : 'normal');
+      // the reference tool's "estimated win probability" is the digit's appearance rate in the sample itself
+      pHat[d] = n ? freq[d] : P0;
+      cls[d] = zFull[d] >= 1 ? 'above' : (zFull[d] <= -1 ? 'below' : 'normal');
     }
     let chi2 = 0;
     if (n) { const e = n * P0; for (let d = 0; d < 10; d++) chi2 += (counts[d] - e) * (counts[d] - e) / e; }
     const deviationScore = n ? 100 * util.chi2cdf(chi2, 9) : 0;
 
-    let hot = null, cold = null;
-    if (n) { hot = 0; cold = 0; for (let d = 1; d < 10; d++) { if (zBlend[d] > zBlend[hot]) hot = d; if (zBlend[d] < zBlend[cold]) cold = d; } }
-
     const sinceLast = Array(10).fill(n);
     for (let i = n - 1, k = 0; i >= 0; i--, k++) { const d = w[i].digit; if (sinceLast[d] === n) sinceLast[d] = k; }
+    // hot = the most frequent digit of the sample (weighted in Pro); a tie goes to the digit seen most recently.
+    // cold = the least frequent one; a tie goes to the digit not seen for longest.
+    let hot = null, cold = null;
+    if (n) {
+      hot = 0; cold = 0;
+      for (let d = 1; d < 10; d++) {
+        if (freq[d] > freq[hot] || (freq[d] === freq[hot] && sinceLast[d] < sinceLast[hot])) hot = d;
+        if (freq[d] < freq[cold] || (freq[d] === freq[cold] && sinceLast[d] > sinceLast[cold])) cold = d;
+      }
+    }
     let currentRun = 0; const lastDigit = n ? w[n - 1].digit : null;
     for (let i = n - 1; i >= 0 && w[i].digit === lastDigit; i--) currentRun++;
     const last5 = w.slice(-5).map(t => t.digit);

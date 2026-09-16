@@ -14,7 +14,7 @@
       for (const s of list) {
         const prev = this._m.get(s.symbol);
         if (prev) { if (s.name) prev.name = s.name; if (s.pipSize != null) prev.pipSize = s.pipSize; next.set(s.symbol, prev); }
-        else next.set(s.symbol, { symbol: s.symbol, name: s.name || s.symbol, pipSize: s.pipSize == null ? null : s.pipSize, ticks: [], available: true, unavailableReason: null, stale: false, lagEma: null, lagMax: 0, lastTickMs: null, lastSignalAt: 0, subscriptionId: null });
+        else next.set(s.symbol, { symbol: s.symbol, name: s.name || s.symbol, pipSize: s.pipSize == null ? null : s.pipSize, ticks: [], available: true, unavailableReason: null, stale: false, lastTickMs: null, lastSignalAt: 0, subscriptionId: null });
       }
       this._m = next; this._order = list.map(s => s.symbol);
     }
@@ -36,9 +36,6 @@
       const tick = { symbol: t.symbol, epoch: Number(t.epoch), quote: Number(t.quote), digit: util.lastDigit(t.quote, pip) };
       if (m.ticks.length && tick.epoch <= m.ticks[m.ticks.length - 1].epoch) return null; // duplicate / out of order
       this._push(m, tick);
-      const lag = Math.max(0, nowMs / 1000 - tick.epoch);
-      m.lagEma = m.lagEma == null ? lag : m.lagEma * 0.7 + lag * 0.3;
-      m.lagMax = Math.max(m.lagMax, lag);
       m.lastTickMs = nowMs; m.stale = false;
       return tick;
     }

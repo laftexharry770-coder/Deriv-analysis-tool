@@ -54,11 +54,12 @@
     root.scrollTo && root.scrollTo(0, 0);
   }
 
-  // pills: { system: 'ONLINE'|'OFFLINE'|'CONNECTING'|'AUTHORIZING', feed: 'LIVE'|'STALE'|'SIMULATED'|'WAITING', lagMs: number|null }
+  // pills: { system: 'ONLINE'|'OFFLINE'|'CONNECTING'|'AUTHORIZING', feed: 'LIVE'|'STALE'|'SIMULATED'|'WAITING' }
   function setPills(p) {
     const sysKind = p.system === 'ONLINE' ? 'status' : (p.system === 'OFFLINE' ? 'bad' : 'warn');
     const feedKind = p.feed === 'LIVE' ? 'status' : (p.feed === 'SIMULATED' ? 'sim' : (p.feed === 'STALE' ? 'bad' : 'warn'));
-    $('pills').innerHTML = C.pill(p.system, sysKind) + C.pill('FEED ' + p.feed, feedKind) + (p.lagMs == null ? '' : C.pill('LAG ' + Math.round(p.lagMs) + ' ms', (p.lagMs > 1500 ? 'bad' : 'info') + ' lag'));
+    const html = C.pill(p.system, sysKind) + C.pill('FEED ' + p.feed, feedKind);
+    const box = $('pills'); if (box.innerHTML !== html) box.innerHTML = html;
   }
 
   function showBanner(b, handler) {

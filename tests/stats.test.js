@@ -19,14 +19,14 @@ test('uniform sample: zero z, chi2 0, all normal', () => {
   assert.equal(s.lastEpoch, 1000 + 199 * 2);
 });
 
-test('hot digit gets positive z, strength above 50, pHat above 0.1', () => {
+test('hot digit gets positive z, strength above 50, pHat is its appearance rate', () => {
   const digits = Array.from({ length: 200 }, (_, i) => (i % 10 === 3 || i % 20 === 4) ? 3 : i % 10); // digit 3 appears 30 times
   const s = stats.computeStats(mk(digits), { window: 200, recent: 50 });
   assert.equal(s.counts[3], 30);
   assert.ok(Math.abs(s.zFull[3] - (30 - 20) / Math.sqrt(200 * 0.09)) < 1e-9);
   assert.equal(s.hot, 3);
   assert.ok(s.strength[3] > 50 && s.strength[3] <= 100);
-  assert.ok(Math.abs(s.pHat[3] - (30 + 20) / (200 + 200)) < 1e-9);
+  assert.ok(Math.abs(s.pHat[3] - 30 / 200) < 1e-9); // the reference tool's estimate is the observed rate itself
   assert.ok(s.chi2 > 0 && s.deviationScore > 0 && s.deviationScore <= 100);
   assert.equal(s.cls[3], 'above');
 });
@@ -65,4 +65,19 @@ test('empty and short input do not throw', () => {
   assert.equal(s.n, 0); assert.equal(s.hot, null); assert.equal(s.tickInterval, 1);
   const s2 = stats.computeStats(mk([4]), { window: 200, recent: 50 });
   assert.equal(s2.n, 1); assert.equal(s2.lastDigit, 4);
+});
+
+test('hot digit is the most frequent one (reference rule), ties go to the most recently seen digit; pro weighs the newest 60% double', () => {
+  // digits 4 and 5 both appear 30 times in 200 ticks; 5 is the more recent of the two
+  const digits = Array.from({ length: 200 }, (_, i) => i % 10);
+  for (let i = 0; i < 10; i++) { digits[i * 20 + 1] = 4; digits[i * 20 + 2] = 5; }
+  const s = stats.computeStats(mk(digits), { window: 200, recent: 50 });
+  assert.equal(s.counts[4], 30); assert.equal(s.counts[5], 30);
+  assert.equal(s.hot, 5);
+  // a digit that is common only in the newest 60% of the sample wins under pro weighting but not under standard
+  const late = Array.from({ length: 200 }, (_, i) => i % 10);
+  for (let i = 100; i < 200; i += 10) late[i + 6] = 8;   // digit 8: 20 + 10 = 30 (all extras in the newest half)
+  for (let i = 0; i < 120; i += 10) late[i + 2] = 9;     // digit 9: 20 + 12 = 32 (extras in the oldest 60%)
+  assert.equal(stats.computeStats(mk(late), { window: 200, recent: 50, mode: 'standard' }).hot, 9);
+  assert.equal(stats.computeStats(mk(late), { window: 200, recent: 50, mode: 'pro' }).hot, 8);
 });

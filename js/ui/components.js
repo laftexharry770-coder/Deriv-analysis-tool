@@ -70,13 +70,13 @@
     return '<div class="kpi' + (kind ? ' ' + esc(kind) : '') + '"><div class="kpi-l">' + esc(label) + '</div><div class="kpi-v">' + value + '</div>' + (sub ? '<div class="kpi-s">' + sub + '</div>' : '') + '</div>';
   }
 
-  const GATE_LABELS = { sample: 'Sample size', zFull: 'z (full window)', zRecent: 'z (recent window)', recency: 'Digit seen within', feed: 'Feed lag', cooldown: 'Cooldown' };
+  const GATE_LABELS = { sample: 'Sample size', zFull: 'z (full window)', zRecent: 'z (recent window)', recency: 'Digit seen within', feed: 'Feed live', cooldown: 'Cooldown' };
   const GATE_FMT = {
     sample: g => g.value + ' / ' + g.need + ' ticks',
     zFull: g => num(g.value) + ' ≥ ' + num(g.need, 1),
     zRecent: g => num(g.value) + ' ≥ ' + num(g.need, 1),
     recency: g => (g.value == null ? '–' : g.value + ' ticks') + ' ≤ ' + g.need,
-    feed: g => (g.value == null ? 'n/a' : num(g.value) + ' s') + ' ≤ ' + num(g.need, 1) + ' s',
+    feed: g => g.pass ? 'live ticks' : (g.value || 'stale'),
     cooldown: g => (g.value > 86400 ? 'no prior signal' : g.value + ' s') + ' ≥ ' + g.need + ' s'
   };
   function gateList(gates) {
@@ -105,7 +105,7 @@
   function tickStrip(m, st, opts) {
     opts = opts || {};
     const last = m.ticks[m.ticks.length - 1];
-    const digits = m.ticks.slice(-16).map(t => t.digit);
+    const digits = m.ticks.slice(-13).map(t => t.digit); // one row: as many of the newest as fit, latest on the right
     const pip = m.pipSize == null ? 2 : m.pipSize;
     return '<div class="strip"><div class="strip-head"><span>' + (opts.simulated ? 'SIMULATED TICK FEED' : 'DERIV TICK FEED') + ' · ' + esc(m.symbol) + '</span><span>' + m.ticks.length + ' ticks · ' + st.tps.toFixed(2) + ' t/s</span></div>'
       + '<div class="strip-body"><div><div class="lbl">Quote</div><div class="quote">' + esc(last.quote.toFixed(pip)) + '</div></div>'
