@@ -25,8 +25,10 @@ Live site: <https://laftexharry770-coder.github.io/Deriv-analysis-tool/>
 2. **Your receiving details** — log in, open **Admin → Your receiving details** and fill in Skrill email,
    Binance Pay ID, USDT address + network, bank details, M-Pesa number. They appear on every user's Upgrade page.
 3. **Owner account** — only `thecorinthian999@gmail.com` sees the Admin panel; it logs in without verification
-   and has every feature (set in `js/config.js`, the `admin_emails` table, and the optional `ADMIN_EMAILS` secret —
-   all three must agree).
+   and has every feature. The email is fixed in `js/config.js`, `supabase/functions/_shared/common.ts` and the
+   `admin_emails` table (change all three together; no environment secret is involved). Nobody can re-register that
+   address: a forgotten owner password is recovered through *Forgot password* like any other account, so set up the
+   mail secrets in step 1 before you need it.
 4. **GitHub Pages** — repo *Settings → Pages → Deploy from branch → `main` / root* (one click). Every later
    deploy: run `python tools/bump-version.py` (cache-busts the assets), commit, push.
 5. **Deriv feed** — uses Deriv's public market-data socket (`wss://api.derivws.com/trading/v1/options/ws/public`):

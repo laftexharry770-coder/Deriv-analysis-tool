@@ -27,6 +27,7 @@
 
   function statusPanel(state) {
     const scan = state.scan, markets = state.book.all();
+    if (scan && scan.phase === 'done') return ''; // the result card takes its place, as in the reference
     if (!scan || scan.phase !== 'running') {
       return '<div class="scan-panel"><span class="pill status">READY TO SCAN</span>'
         + '<p>Press <b>Scan Volatility</b> to pull recent ticks from all ' + (markets.length || 'the') + ' volatility markets, rank them by digit deviation and auto-select the strongest one. The choice applies to every market dropdown in the app.</p></div>';

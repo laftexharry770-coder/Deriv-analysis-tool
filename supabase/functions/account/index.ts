@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   try {
     const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (!profile) return fail('NO_PROFILE', 404);
-    const isAdmin = !!profile.is_admin || isAdminEmail(user.email);
+    const isAdmin = isAdminEmail(user.email); // the owner email alone decides
 
     if (action === 'me') {
       const { data: claims } = await sb.from('payment_claims').select('id, method, reference, amount, currency, status, created_at, reviewed_at, review_note')

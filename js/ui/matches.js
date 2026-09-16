@@ -8,6 +8,7 @@
   function activeStats(state) { return state.activeStats; }
   function market(state) { return state.active ? state.book.get(state.active) : null; }
   function lockedResult(state) { const pr = state.predict; return pr && pr.phase === 'done' && pr.result ? pr.result : null; }
+  function circleLocked(state) { const r = lockedResult(state); return r && r.outcome == null ? r : null; }
 
   function marketOptions(state) {
     return state.book.all().map(m => '<option value="' + C.esc(m.symbol) + '"' + (m.symbol === state.active ? ' selected' : '') + '>' + C.esc(m.name) + '</option>').join('');
@@ -26,15 +27,15 @@
   }
 
   function settingsCard(state) {
-    const s = state.settings, pro = s.mode === 'pro';
+    const s = state.settings, pro = s.mode === 'pro', bot = !!s.proBot;
     return '<div class="card"><div class="card-head"><h3>Analysis settings</h3><div class="sub">statistical analysis over the last ' + s.window + ' ticks of ' + (state.feedStatus && state.feedStatus.kind === 'sim' ? 'simulated' : 'real Deriv') + ' data — strength and probability are both calculated from that sample</div></div>'
+      + '<div class="field"><label for="md-sample">Sample size</label><select id="md-sample">' + [100, 200, 250, 300, 500].map(n => '<option value="' + n + '"' + (Number(s.window) === n ? ' selected' : '') + '>' + n + ' ticks</option>').join('') + '</select></div>'
       + '<div class="field"><label>Analysis mode</label><div class="segmented wide"><button type="button" data-mode="standard" class="' + (pro ? '' : 'on') + '">⚡ STANDARD</button><button type="button" data-mode="pro" class="' + (pro ? 'on' : '') + '">✦ PRO</button></div></div>'
       + '<div class="field"><label for="md-market2">Market</label><select id="md-market2">' + marketOptions(state) + '</select></div>'
-      + '<div class="field"><label for="md-sample">Sample size</label><select id="md-sample">' + [100, 200, 250, 300, 500].map(n => '<option value="' + n + '"' + (Number(s.window) === n ? ' selected' : '') + '>' + n + ' ticks</option>').join('') + '</select></div>'
       + '<div class="field"><label for="md-dur">Analysis duration</label><select id="md-dur">' + [[0, 'instant'], [2000, '~2s'], [3500, '~4s'], [6000, '~6s']].map(([v, l]) => '<option value="' + v + '"' + (Number(s.scanAnimMs) === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>'
-      + '<div class="pro-card"><div class="row between"><div class="row"><span class="mod-ic">✦</span><b>SYNCHRONIZED PRO BOT</b></div>' + (pro ? C.pill('BOT ACTIVE', 'ok') : C.pill('BOT NOT ACTIVATED', 'warn')) + '</div>'
-      + (pro ? '<div class="pro-note"><span>●</span> Pro Bot is active. Deeper statistical filtering and synchronized analysis enabled.</div>'
-        : '<button type="button" class="btn primary wide" style="margin-top:10px" data-mode="pro" data-activate="1">⚡ ACTIVATE BOT</button>')
+      + '<div class="pro-card"><div class="row between"><div class="row"><span class="mod-ic">✦</span><b>SYNCHRONIZED PRO BOT</b></div>' + (bot ? C.pill('BOT ACTIVE', 'ok') : C.pill('BOT NOT ACTIVATED', 'warn')) + '</div>'
+      + (bot ? '<div class="pro-note"><span>●</span> Pro Bot is active. Deeper statistical filtering and synchronized analysis enabled.</div>'
+        : '<button type="button" class="btn primary wide" style="margin-top:10px" data-activate="1">⚡ ACTIVATE BOT</button>')
       + '<div class="muted small" style="margin-top:8px">Pro weights the most recent 60% of the sample more heavily when ranking digits.</div></div></div>';
   }
 
@@ -43,28 +44,28 @@
     const sim = state.feedStatus && state.feedStatus.kind === 'sim';
     const pr = state.predict || { phase: 'idle' };
     const running = pr.phase === 'running';
-    const locked = lockedResult(state);
+    const locked = lockedResult(state), held = circleLocked(state);
     const strip = m && st && st.n ? C.tickStrip(m, st, { simulated: sim }) : '<div class="strip"><div class="strip-head"><span>' + (sim ? 'SIMULATED TICK FEED' : 'DERIV TICK FEED') + '</span><span>waiting for ticks…</span></div></div>';
-    // once a prediction is locked the circle holds the predicted digit (as in the reference); before that it follows the latest tick
-    const circleDigit = locked ? locked.digit : (st && st.lastDigit != null ? st.lastDigit : '–');
-    return '<div class="card"><div class="card-head"><span class="pill status">LIVE DIGIT STREAM</span></div>' + strip
+    // while a call is open the circle holds the predicted digit (as in the reference); otherwise it follows the latest tick
+    const circleDigit = held ? held.digit : (st && st.lastDigit != null ? st.lastDigit : '–');
+    return '<div class="card" id="md-stream"><div class="card-head"><span class="pill status">LIVE DIGIT STREAM</span></div>' + strip
       + '<div class="pred-row"><button type="button" class="btn pred-btn" data-predict="differs"' + (running ? ' disabled' : '') + '>DIFFER</button>'
-      + '<div class="live-circle' + (locked ? ' locked' : '') + '" id="md-live"><span>' + circleDigit + '</span></div>'
+      + '<div class="live-circle' + (held ? ' locked' : '') + '" id="md-live"><span>' + circleDigit + '</span></div>'
       + '<button type="button" class="btn primary pred-btn" data-predict="matches"' + (running ? ' disabled' : '') + '>MATCH</button></div>'
       + '<div class="range-row"><span class="kpi-l">Prediction range</span>' + [1, 2, 3, 4, 5].map(n => '<button type="button" class="range-chip' + (Number(state.settings.horizonTicks) === n ? ' on' : '') + '" data-range="' + n + '">' + n + '</button>').join('') + '</div>'
       + (locked ? '<div class="locked-call" id="md-call">' + (locked.contract === 'differs' ? 'DIFFER ' : 'MATCH ') + locked.digit + '</div>'
-        : '<div class="muted small" style="text-align:center;margin-top:8px">' + (running ? 'Analyzing…' : 'The circle follows the latest tick. Press Differ or Match to lock a prediction on ' + C.esc(m ? m.name : 'the active market') + '.') + '</div>') + '</div>';
+        : '<div class="muted small" style="text-align:center;margin-top:8px">The circle follows the latest tick. Press Differ or Match to lock a prediction on ' + C.esc(m ? m.name : 'the active market') + '.</div>') + '</div>';
   }
 
   function prediction(state) {
     const pr = state.predict; const st = activeStats(state);
     if (!pr || pr.phase === 'idle') return '';
     const recent = st && st.last5 ? st.last5 : [];
-    let h = '<div class="card pred-card"><div class="card-head"><span class="pill status">' + (pr.kind === 'differs' ? 'DIFFER PREDICTION' : 'MATCH PREDICTION') + '</span><span class="sub">' + C.esc(pr.marketName || '') + '</span></div>'
-      + '<div class="digit-row">' + recent.map(d => '<span>' + d + '</span>').join('') + '</div>';
+    let h = '<div class="card pred-card"><div class="card-head" style="justify-content:center"><span class="pill status">' + (pr.kind === 'differs' ? 'DIFFER PREDICTION' : 'MATCH PREDICTION') + '</span></div>'
+      + '<div class="digit-row" id="md-tiles">' + recent.map(d => '<span>' + d + '</span>').join('') + '</div>';
     if (pr.phase === 'running') {
-      h += '<div class="scan-title small" style="margin-top:10px">Analyzing ' + (pr.kind === 'differs' ? 'differ' : 'match') + ' pattern</div><ul class="scan-phases" id="md-steps">' + pr.steps.map(p => '<li class="' + p.state + '">' + C.esc(p.label) + '</li>').join('') + '</ul>'
-        + '<div class="progress"><div id="md-bar" style="width:' + ((pr.progress || 0) * 100).toFixed(1) + '%"></div></div><div class="progress-meta"><span>Analyzing…</span><span id="md-pct">' + Math.round((pr.progress || 0) * 100) + '%</span></div>';
+      h += '<div class="scan-title small" style="margin-top:10px;text-align:center">Analyzing ' + (pr.kind === 'differs' ? 'differ' : 'match') + ' pattern</div><ul class="scan-phases" id="md-steps">' + pr.steps.map(p => '<li class="' + p.state + '">' + C.esc(p.label) + '</li>').join('') + '</ul>'
+        + '<div class="progress"><div id="md-bar" style="width:' + ((pr.progress || 0) * 100).toFixed(1) + '%"></div></div><div class="scan-pct" id="md-pct">' + Math.round((pr.progress || 0) * 100) + '%</div>';
     } else if (pr.result) {
       const s = pr.result;
       const open = s.outcome == null && s.status === 'live';
@@ -80,15 +81,16 @@
     if (!el) return;
     el.innerHTML = C.pageTitle('✦', 'Matches / Differs', 'Find the most frequent digit in recent ticks and read how likely the next tick is to repeat it')
       + '<div class="card"><div class="field"><label for="md-market">Select volatility market</label><select id="md-market">' + marketOptions(state) + '</select></div>' + chart(state) + '</div>'
-      + settingsCard(state) + liveStream(state) + prediction(state);
+      + settingsCard(state) + (state.predict && state.predict.phase === 'running' ? prediction(state) : liveStream(state) + prediction(state));
     el.querySelector('#md-market').addEventListener('change', (e) => act.setActive(e.target.value));
     el.querySelectorAll('[data-predict]').forEach(b => b.addEventListener('click', () => act.predict(b.getAttribute('data-predict'))));
     el.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => act.setSettings({ horizonTicks: Number(b.getAttribute('data-range')) })));
     el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
       const mode = b.getAttribute('data-mode');
-      if (b.getAttribute('data-activate')) { b.disabled = true; b.innerHTML = '<span class="spin-ic" aria-hidden="true">◌</span> ACTIVATING…'; root.setTimeout(() => act.setSettings({ mode }), 900); return; }
-      act.setSettings({ mode });
+      act.setSettings(mode === 'standard' ? { mode, proBot: false } : { mode }); // leaving PRO also switches the bot off
     }));
+    const act1 = el.querySelector('[data-activate]');
+    if (act1) act1.addEventListener('click', () => { act1.disabled = true; act1.innerHTML = '<span class="spin-ic" aria-hidden="true">◌</span> ACTIVATING…'; root.setTimeout(() => act.setSettings({ mode: 'pro', proBot: true }), 900); });
     el.querySelector('#md-dur').addEventListener('change', (e) => act.setSettings({ scanAnimMs: Number(e.target.value) }));
     el.querySelector('#md-sample').addEventListener('change', (e) => act.setSettings({ window: Number(e.target.value) }));
     el.querySelector('#md-market2').addEventListener('change', (e) => act.setActive(e.target.value));
@@ -99,13 +101,15 @@
     if (!el) return;
     const st = activeStats(state), m = market(state);
     if (!st || !m) return;
-    const locked = lockedResult(state);
-    if (!locked) { const c = el.querySelector('#md-live span'); if (c) { const v = st.lastDigit == null ? '–' : String(st.lastDigit); if (c.textContent !== v) c.textContent = v; } }
+    const locked = lockedResult(state), held = circleLocked(state);
+    const c = el.querySelector('#md-live span');
+    if (c) { const v = held ? String(held.digit) : (st.lastDigit == null ? '–' : String(st.lastDigit)); if (c.textContent !== v) c.textContent = v; const wrap = c.parentNode; if (wrap && wrap.classList) wrap.classList.toggle('locked', !!held); }
+    const tiles = el.querySelector('#md-tiles'); if (tiles && st.last5) { const html = st.last5.map(d => '<span>' + d + '</span>').join(''); if (tiles.innerHTML !== html) tiles.innerHTML = html; }
     const u = el.querySelector('#md-updated'); if (u && st.lastEpoch) { const ago = Math.max(0, Math.round(Date.now() / 1000 - st.lastEpoch)); u.textContent = ago <= 1 ? 'updated just now' : 'updated ' + ago + 's ago'; }
     const cir = el.querySelector('.circles'); if (cir) cir.outerHTML = C.digitCircles(st, { lastDigit: st.lastDigit });
     const bars = el.querySelector('.bars'); if (bars) bars.outerHTML = C.digitBars(st, { highlight: st.hot });
     const strip = el.querySelector('.strip'); if (strip && st.n) strip.outerHTML = C.tickStrip(m, st, { simulated: state.feedStatus && state.feedStatus.kind === 'sim' });
-    // the locked call resolves on a later tick: rebuild once so the WIN / LOSS pill appears
+    // the call resolves on a later tick: rebuild once so the WIN / LOSS pill appears and the circle goes live again
     if (locked && locked.outcome && !el.querySelector('.pred-card .pill.ok, .pred-card .pill.bad')) render(state);
   }
   function renderProgress(state) {

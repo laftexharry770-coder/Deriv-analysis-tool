@@ -127,8 +127,12 @@
       if (!DATA_PAGES.includes(state.page)) return;
       if (doc && doc.hidden) return;
       if (scrolling()) { if (!liveDeferred) { liveDeferred = true; setTimeoutFn(() => { liveDeferred = false; renderData(true); }, 220); } return; }
+      if (pageGate(state.page) !== 'ok') { renderPage(state.page); return; } // the lock screen, never live content
+      const el = doc && doc.getElementById('page-' + state.page);
+      const focused = doc && doc.activeElement;
+      if (el && focused && el.contains(focused) && /^(INPUT|SELECT|TEXTAREA)$/.test(focused.tagName)) return; // same guard as renderPage
       const ui = root.MS.ui && root.MS.ui[state.page];
-      if (ui && ui.renderLive && doc && doc.getElementById('page-' + state.page) && doc.getElementById('page-' + state.page).children.length) ui.renderLive(state); else renderPage(state.page);
+      if (ui && ui.renderLive && el && el.children.length) ui.renderLive(state); else renderPage(state.page);
     }
     let lastScrollAt = 0;
     function scrolling() { return now() - lastScrollAt < 180; }
@@ -204,6 +208,7 @@
     function startFeed() {
       stopFeed();
       state.book = new modules.MarketBook(); state.active = null; state.activeStats = null; state.overview = [];
+      resetPredict();
       state.feedStatus = { state: 'connecting', kind: state.settings.simulator ? 'sim' : 'live' };
       feed = makeFeed(state.settings); feedRunning = true;
       ['status', 'universe', 'universe-empty', 'history', 'tick', 'symbol-error', 'latency', 'error'].forEach(ev => { if (feed && feed.on) feedUnsubs.push(feed.on(ev, p => handleFeedEvent(ev, p))); });
@@ -269,6 +274,11 @@
       if (expiredNow) renderAll(); else renderData();
     }
     // ---------- manual MATCH / DIFFER prediction (Matches / Differs page) ----------
+    // A prediction belongs to one market on one feed: switching either clears it (the record stays in Accuracy).
+    function resetPredict() {
+      if (predictTimer != null) { clearIntervalFn(predictTimer); predictTimer = null; }
+      state.predict = { phase: 'idle', kind: null, progress: 0, steps: [], result: null, marketName: '' };
+    }
     function finishPredict() {
       if (predictTimer != null) { clearIntervalFn(predictTimer); predictTimer = null; }
       const pr = state.predict; if (pr.phase !== 'running') return;
@@ -362,7 +372,7 @@
         const ui = shell(); if (ui) ui.setPage(page);
         refreshDerived(); updatePills(); renderPage(page, true);
       },
-      setActive(symbol) { if (!state.book.get(symbol)) return; state.active = symbol; state.settings.activeSymbol = symbol; persistSettings(); refreshDerived(); renderAll(); },
+      setActive(symbol) { if (!state.book.get(symbol)) return; if (symbol !== state.active) resetPredict(); state.active = symbol; state.settings.activeSymbol = symbol; persistSettings(); refreshDerived(); renderAll(); },
       setFreq(patch) { state.freq = Object.assign({}, state.freq, patch || {}); renderPage('frequency', true); },
       setAccuracySource(source) { state.accuracySource = source; state.settings.accuracySource = source; persistSettings(); refreshMetrics(); renderPage('accuracy', true); },
       scan(options) {

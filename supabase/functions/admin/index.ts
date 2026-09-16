@@ -1,4 +1,4 @@
-// admin: owner-only actions. Caller must be signed in AND (profiles.is_admin OR email in ADMIN_EMAILS).
+// admin: owner-only actions. Caller must be signed in with the owner email (ADMIN_EMAILS); a stored is_admin flag alone grants nothing.
 // list_claims · approve_claim · reject_claim · verify_user · send_activation · revoke · list_users · get_settings · save_settings
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { CORS, json, fail, serviceClient, userFromRequest, readBody, normEmail, validEmail, issueCode, grantPremium, isAdminEmail, PREMIUM_DAYS } from '../_shared/common.ts';
@@ -27,8 +27,7 @@ Deno.serve(async (req) => {
   const user = await userFromRequest(req);
   if (!user) return fail('UNAUTHENTICATED', 401);
   const sb = serviceClient();
-  const { data: me } = await sb.from('profiles').select('is_admin, email').eq('id', user.id).maybeSingle();
-  if (!(me?.is_admin || isAdminEmail(user.email))) return fail('FORBIDDEN', 403);
+  if (!isAdminEmail(user.email)) return fail('FORBIDDEN', 403);
   const body = await readBody(req);
   const action = String(body.action ?? '');
   const reviewer = normEmail(user.email);

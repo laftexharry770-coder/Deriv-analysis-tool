@@ -4,9 +4,9 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 export const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 export const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 // The owner account. Only this email sees the Admin panel and may call the admin function; it also signs in
-// without verification and has full access without payment.
-export const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') ?? 'thecorinthian999@gmail.com')
-  .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+// without verification and has full access without payment. Fixed in code on purpose (no environment override),
+// so no stale secret can widen it.
+export const ADMIN_EMAILS = ['thecorinthian999@gmail.com'];
 export const PREMIUM_DAYS = Number(Deno.env.get('PREMIUM_DAYS') ?? '30');
 
 export const CORS = {

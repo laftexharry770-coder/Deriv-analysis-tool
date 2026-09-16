@@ -9,7 +9,7 @@
   const stats = isNode ? require('./stats.js') : root.MS.stats;
 
   const DEFAULT_SETTINGS = {
-    window: 200, recent: 50, mode: 'standard', kappa: 200,
+    window: 200, recent: 50, mode: 'standard', proBot: false, kappa: 200,
     minSample: 180, minZFull: 1.5, minZRecent: 1.0, recencyGate: true, maxSinceLast: 10,
     cooldownSec: 20,
     entryWindowTicks: 5, horizonTicks: 1,

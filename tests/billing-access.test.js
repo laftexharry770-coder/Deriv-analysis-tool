@@ -49,7 +49,9 @@ test('entitlements', () => {
   assert.equal(A.pageAccess('signal', lapsed, cfg, now), 'premium');
   assert.equal(A.pageAccess('admin', paid, cfg, now), 'admin');
   assert.equal(A.pageAccess('admin', { email: 'OWNER@example.com' }, cfg, now), 'ok');
-  assert.equal(A.pageAccess('admin', { email: 'x@y.z', is_admin: true }, cfg, now), 'ok');
+  // a stored is_admin flag grants nothing by itself: only the configured owner email opens the Admin panel
+  assert.equal(A.pageAccess('admin', { email: 'x@y.z', is_admin: true }, cfg, now), 'admin');
+  assert.equal(A.isAdmin({ email: 'x@y.z', is_admin: true }, cfg), false);
   assert.deepEqual(A.accountBadge(paid, now), { id: 'MS-2', tier: 'PREMIUM', tick: true, daysLeft: 30 });
   assert.deepEqual(A.accountBadge(lapsed, now), { id: 'MS-3', tier: 'FREE', tick: false, daysLeft: 0 });
   assert.equal(A.accountBadge(null), null);

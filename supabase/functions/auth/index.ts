@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
       if (!validPhone(phone)) return fail('PHONE_INVALID');
       const admin = isAdminEmail(email); // the owner email: no verification, no payment needed
       const existing = await findUserByEmail(sb, email);
-      if (existing && existing.email_verified && !admin) return fail('EMAIL_EXISTS');
+      // A verified account (and the owner account in every case) can never be re-registered: signup must not be a
+      // way to set a new password on somebody else's account. Lost passwords go through reset_request / reset_confirm.
+      if (existing && (existing.email_verified || admin)) return fail('EMAIL_EXISTS');
       let userId: string; let accountId: string | undefined;
       if (existing) {
         // unverified account being re-registered: the new password wins once the email proves itself

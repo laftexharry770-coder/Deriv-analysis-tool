@@ -17,7 +17,6 @@
   }
   function isAdmin(profile, cfg) {
     if (!profile) return false;
-    if (profile.is_admin) return true;
     const admins = (cfg && cfg.adminEmails) || [];
     return admins.map((e) => String(e).toLowerCase()).includes(String(profile.email || '').toLowerCase());
   }
@@ -36,7 +35,7 @@
   function accountBadge(profile, nowMs) {
     if (!profile) return null;
     const premium = isPremium(profile, nowMs);
-    const admin = !!profile.is_admin;
+    const admin = !!profile.is_admin; // set by the server from the owner email, never from a stored flag
     return { id: profile.account_id || '—', tier: admin ? 'ADMIN' : (premium ? 'PREMIUM' : 'FREE'), tick: (!!profile.verified && premium) || admin, daysLeft: daysLeft(profile, nowMs) };
   }
 
