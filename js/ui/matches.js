@@ -17,7 +17,8 @@
     if (!m || !st || !st.n) return '<div class="muted small">Waiting for ticks…</div>';
     const even = [0, 2, 4, 6, 8].reduce((a, d) => a + st.counts[d], 0) / st.n;
     return '<div class="row between" style="margin:8px 0"><div><div class="kpi-l">Active market</div><div class="mono" style="font-weight:700">' + C.esc(m.name) + '</div></div><div class="chips"><span class="chip">EVEN ' + C.pct(even) + '</span><span class="chip">ODD ' + C.pct(1 - even) + '</span></div></div>'
-      + '<div class="kpi-l" style="margin:6px 0">Digit chart · appearance rate over the last ' + st.n + ' ticks</div>' + C.digitCircles(st, { lastDigit: st.lastDigit })
+      + '<div class="kpi-l" style="margin:6px 0">Digit chart · appearance rate over the last ' + st.n + ' ticks · <span id="md-updated">updated just now</span></div>' + C.digitCircles(st, { lastDigit: st.lastDigit })
+      + '<div class="chart-note">ARROW MARKS THE LATEST TICK · 10.0% IS THE UNIFORM BASELINE</div>'
       + '<div class="legend"><span><i style="background:var(--accent)"></i>Highest</span><span><i style="background:var(--surface-2);border:1px solid var(--border-2)"></i>Normal</span><span><i style="background:var(--border-2)"></i>Lowest</span><span><i style="background:var(--amber)"></i>Last tick</span></div>'
       + '<div class="card-head" style="margin-top:14px"><h3>Digit frequency</h3><div class="sub">' + st.n + ' ticks · last ' + st.nR + ' weighed as the recent window</div></div>' + C.digitBars(st, { highlight: st.hot })
       + '<div class="legend"><span><i style="background:var(--bar-above)"></i>Above baseline</span><span><i style="background:var(--bar-normal)"></i>Normal</span><span><i style="background:var(--bar-below)"></i>Below baseline</span><span><i style="border-top:1px dashed var(--amber);height:0;width:12px"></i>10% uniform baseline</span></div>';
@@ -65,7 +66,8 @@
       + '<div class="field"><label for="md-duration">Contract duration</label><select id="md-duration">' + [1, 3, 5].map(n => '<option value="' + n + '"' + (Number(s.horizonTicks) === n ? ' selected' : '') + '>' + n + ' tick' + (n > 1 ? 's' : '') + '</option>').join('') + '</select></div>'
       + '<div class="field"><label>Analysis mode</label><div class="segmented"><button type="button" data-mode="standard" class="' + (s.mode === 'standard' ? 'on' : '') + '">◇ Standard</button><button type="button" data-mode="pro" class="' + (s.mode === 'pro' ? 'on' : '') + '">◈ Pro</button></div></div>'
       + '<div class="field"><label for="md-dur">Analysis duration</label><select id="md-dur">' + [[0, 'instant'], [2000, '~2s'], [3500, '~4s'], [6000, '~6s']].map(([v, l]) => '<option value="' + v + '"' + (Number(s.scanAnimMs) === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div></div>'
-      + (s.mode === 'pro' ? '<div class="banner" style="margin-top:10px"><div class="banner-title">Pro analysis is active</div><div class="banner-body">Deeper statistical filtering: Pro weights the most recent 60% of the sample more heavily when ranking digits.</div></div>' : '<div class="controls" style="margin-top:10px"><button type="button" class="btn" data-mode="pro">Activate Pro analysis</button><span class="muted small">weights the most recent 60% of the sample more heavily</span></div>') + '</div>';
+      + '<div class="pro-card"><div class="row between"><div class="row"><span class="mod-ic">◈</span><b>SYNCHRONIZED PRO MODE</b></div>' + (s.mode === 'pro' ? C.pill('PRO ACTIVE', 'ok') : C.pill('NOT ACTIVATED', 'warn')) + '</div>'
+      + (s.mode === 'pro' ? '<div class="banner" style="margin-top:10px"><div class="banner-body">Pro mode is active. Deeper statistical filtering and synchronized analysis enabled — the most recent 60% of the sample is weighted more heavily when ranking digits.</div></div><div class="controls" style="margin-top:10px"><button type="button" class="btn ghost" data-mode="standard">Back to Standard</button></div>' : '<div class="controls" style="margin-top:10px"><button type="button" class="btn primary" data-mode="pro" data-activate="1">◈ ACTIVATE PRO</button><span class="muted small">Pro weights the most recent 60% of the sample more heavily when ranking digits.</span></div>') + '</div></div>';
   }
 
   function render(state) {
@@ -75,7 +77,11 @@
     el.querySelector('#md-market').addEventListener('change', (e) => act.setActive(e.target.value));
     el.querySelectorAll('[data-predict]').forEach(b => b.addEventListener('click', () => act.predict(b.getAttribute('data-predict'))));
     el.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => act.setSettings({ horizonTicks: Number(b.getAttribute('data-range')) })));
-    el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => act.setSettings({ mode: b.getAttribute('data-mode') })));
+    el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+      const mode = b.getAttribute('data-mode');
+      if (b.getAttribute('data-activate')) { b.disabled = true; b.textContent = 'ACTIVATING…'; root.setTimeout(() => act.setSettings({ mode }), 900); return; }
+      act.setSettings({ mode });
+    }));
     el.querySelector('#md-duration').addEventListener('change', (e) => act.setSettings({ horizonTicks: Number(e.target.value) }));
     el.querySelector('#md-dur').addEventListener('change', (e) => act.setSettings({ scanAnimMs: Number(e.target.value) }));
     el.querySelector('#md-sample').addEventListener('change', (e) => act.setSettings({ window: Number(e.target.value) }));
@@ -87,6 +93,8 @@
     if (!el) return;
     const st = activeStats(state), m = market(state);
     const c = el.querySelector('#md-live span'); if (c && st) c.textContent = st.lastDigit == null ? '–' : st.lastDigit;
+    const u = el.querySelector('#md-updated'); if (u && st && st.lastEpoch) { const ago = Math.max(0, Math.round(Date.now() / 1000 - st.lastEpoch)); u.textContent = ago <= 1 ? 'updated just now' : 'updated ' + ago + 's ago'; }
+    const cir = el.querySelector('.circles'); if (cir && st) cir.outerHTML = C.digitCircles(st, { lastDigit: st.lastDigit });
     const strip = el.querySelector('.strip'); if (strip && m && st && st.n) strip.outerHTML = C.tickStrip(m, st, { simulated: state.feedStatus && state.feedStatus.kind === 'sim' });
     if (state.predict && state.predict.phase === 'done' && state.predict.result && state.predict.result.outcome && !el.querySelector('.pred-card .pill.ok, .pred-card .pill.bad')) render(state);
   }

@@ -15,7 +15,7 @@
   };
   const CFG = (root.MS && root.MS.config) || { freePages: ['dashboard', 'frequency', 'account', 'upgrade', 'settings'], priceUsd: 70, premiumDays: 30, contact: {} };
 
-  const PHASE_LABELS = ['Scanning volatility markets', 'Pulling recent tick history', 'Counting appearances per digit', 'Ranking markets by deviation', 'Comparing against the 10% baseline', 'Checking sniper gates'];
+  const PHASE_LABELS = ['Scanning volatility markets', 'Collecting recent tick data', 'Extracting last digits', 'Ranking markets by deviation', 'Checking sniper gates', 'Picking the best market'];
   const ALL_PAGES = ['dashboard', 'scanner', 'matches', 'signal', 'frequency', 'accuracy', 'settings', 'account', 'upgrade', 'support', 'admin'];
   const PREDICT_STEPS = ['Pulling Deriv tick history', 'Counting appearances per digit', 'Ranking digits by frequency', 'Comparing against the 10% baseline', 'Estimating win probability'];
   const DATA_PAGES = ['dashboard', 'frequency', 'matches'];
@@ -237,7 +237,7 @@
         const top = result && result.ranked && result.ranked[0];
         if (top) { state.active = top.symbol; state.settings.activeSymbol = top.symbol; persistSettings(); }
       }
-      if (state.scan.navigateOnFinish) actions.navigate(result && result.type === 'signal' ? 'signal' : 'matches'); else renderAll();
+      if (state.scan.navigateOnFinish) actions.navigate('signal'); else renderAll();
     }
     function runScanProgress() {
       if (state.scan.phase !== 'running') return;
@@ -355,6 +355,7 @@
 
     const actions = {
       navigate(page) {
+        if (page === 'logout') { actions.logout(); return; }
         if (!ALL_PAGES.includes(page)) return;
         const gate = pageGate(page);
         if (gate === 'login') { if (auth) auth.showAuthView('login'); return; }
@@ -375,7 +376,7 @@
         const scanNow = now();
         state.lastScanAt = scanNow; // guards against a second trigger while the animation runs
         const duration = Math.max(0, Number(state.settings.scanAnimMs) || 0);
-        state.scan = { phase: 'running', progress: 0, remainingMs: duration, startedAt: scanNow, durationMs: duration, phases: idlePhases(), result: null, navigateOnFinish: options.from === 'scanner' };
+        state.scan = { phase: 'running', progress: 0, remainingMs: duration, startedAt: scanNow, durationMs: duration, phases: idlePhases(), result: null, navigateOnFinish: options.from === 'signal' };
         updateScanPhases(0); renderAll();
         if (duration === 0) finishScan(); else scanTimer = setIntervalFn(runScanProgress, Math.min(100, Math.max(30, duration / 30)));
       },

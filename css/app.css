@@ -454,3 +454,15 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .pills .pill:not(:nth-child(2)) { display: none; }
   .acct-chip { max-width: 44vw; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* video-faithful details: latest-tick arrow, chart note, pro card, latest block in the strip */
+.circle { position: relative; }
+.circle .arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); color: var(--accent); font-weight: 900; font-size: 14px; }
+.circles { padding-top: 10px; }
+.chart-note { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--muted); text-align: center; margin-top: 8px; }
+.pro-card { margin-top: 14px; border: 1px solid var(--border-2); border-radius: 10px; padding: 12px; background: var(--surface-2); }
+.pro-card b { letter-spacing: .06em; font-size: 12.5px; }
+.strip-body { grid-template-columns: auto 1fr auto; }
+.strip-latest { text-align: right; }
+.strip .latest { font-size: 34px; font-weight: 800; color: #7fb0ff; line-height: 1; }
+@media (max-width: 480px) { .strip-body { grid-template-columns: 1fr auto; } .strip-body > div:first-child { grid-column: 1 / -1; } .strip-digits { grid-column: 1; } .strip-latest { grid-column: 2; } }

@@ -36,7 +36,7 @@
     let h = '<div class="circles">';
     for (let d = 0; d < 10; d++) {
       const cls = ['circle']; if (st.hot === d) cls.push('hot'); if (st.cold === d) cls.push('cold'); if (opts.lastDigit === d) cls.push('last');
-      h += '<div class="' + cls.join(' ') + '"><div class="cd">' + d + '</div><div class="cp">' + pct(st.freq ? st.freq[d] : 0) + '</div></div>';
+      h += '<div class="' + cls.join(' ') + '">' + (opts.lastDigit === d ? '<span class="arrow" aria-label="latest tick">↑</span>' : '') + '<div class="cd">' + d + '</div><div class="cp">' + pct(st.freq ? st.freq[d] : 0) + '</div></div>';
     }
     return h + '</div>';
   }
@@ -109,7 +109,8 @@
     const pip = m.pipSize == null ? 2 : m.pipSize;
     return '<div class="strip"><div class="strip-head"><span>' + (opts.simulated ? 'SIMULATED TICK FEED' : 'DERIV TICK FEED') + ' · ' + esc(m.symbol) + '</span><span>' + m.ticks.length + ' ticks · ' + st.tps.toFixed(2) + ' t/s</span></div>'
       + '<div class="strip-body"><div><div class="lbl">Quote</div><div class="quote">' + esc(last.quote.toFixed(pip)) + '</div></div>'
-      + '<div class="strip-digits"><div class="lbl">Last digits</div><div class="lastd">' + digits.map((d, i) => '<span class="' + (i === digits.length - 1 ? 'latest' : '') + '">' + d + '</span>').join('') + '</div></div></div></div>';
+      + '<div class="strip-digits"><div class="lbl">Last digits</div><div class="lastd">' + digits.slice(0, -1).map(d => '<span>' + d + '</span>').join('') + '</div></div>'
+      + '<div class="strip-latest"><div class="lbl">Latest</div><div class="latest">' + digits[digits.length - 1] + '</div></div></div></div>';
   }
 
   /** Page heading in the reference-tool style: a square icon badge beside an uppercase title. */

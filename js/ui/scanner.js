@@ -50,7 +50,7 @@
     return (scan.phase === 'running' ? '<div class="matrix-wrap"><canvas id="scan-rain" class="matrix" aria-hidden="true"></canvas><div class="matrix-label"><span>MATRIX DEEP SCAN</span><span id="scan-pct">' + Math.round((scan.progress || 0) * 100) + '%</span></div></div>' : '')
       + '<ul class="scan-phases" id="scan-phases">' + scan.phases.map(p => '<li class="' + p.state + '">' + C.esc(p.label) + '</li>').join('') + '</ul>'
       + '<div class="progress"><div id="scan-bar" style="width:' + ((scan.progress || 0) * 100).toFixed(1) + '%"></div></div>'
-      + '<div class="progress-meta"><span id="scan-state">' + (scan.phase === 'running' ? 'Scanning market…' : 'Scan complete') + '</span><span id="scan-left">' + (scan.phase === 'running' ? left.toFixed(1) + 's left' : '100%') + '</span></div>';
+      + '<div class="progress-meta"><span id="scan-state">' + (scan.phase === 'running' ? 'Auto-selecting: ' + C.esc(scan.cycling || '…') : 'Scan complete') + '</span><span id="scan-left">' + (scan.phase === 'running' ? left.toFixed(1) + 's left' : '100%') + '</span></div>';
   }
 
   function autoCard(state) {
@@ -60,11 +60,12 @@
     const m = state.book.get(top.symbol);
     return '<div class="card auto-card"><div class="card-head"><div class="row"><span class="pill ok">AUTO-SELECTED MARKET</span><span class="rank-badge">RANK #' + top.rank + ' OF ' + top.universeSize + '</span></div></div>'
       + '<h3 style="font-size:20px">' + C.esc(top.name) + '</h3>'
-      + '<p class="intro">' + (r.type === 'signal' ? 'Strongest digit deviation that also passes every sniper gate. Now active in every market dropdown.' : 'Strongest digit deviation right now, but no market passed every sniper gate. Now active in every market dropdown.') + '</p>'
+      + '<p class="intro">' + (r.type === 'signal' ? 'Chosen for the strongest digit deviation that also passes every sniper gate. Now active in every market dropdown.' : 'Chosen for the strongest digit deviation right now (no market passed every sniper gate yet). Now active in every market dropdown.') + '</p>'
       + '<div class="tiles"><div class="tile"><div class="l">Deviation score</div><div class="v">' + top.stats.chi2.toFixed(2) + '</div></div>'
       + '<div class="tile"><div class="l">Sample size</div><div class="v">' + top.stats.n + '</div></div>'
       + '<div class="tile"><div class="l">Market activity</div><div class="v">' + top.stats.tps.toFixed(2) + ' t/s</div></div>'
-      + '<div class="tile"><div class="l">Status</div><div class="v ' + (r.type === 'signal' ? 'ok-t' : 'warn-t') + '">' + (r.type === 'signal' ? 'Signal issued' : 'No setup') + '</div></div></div>'
+      + '<div class="tile"><div class="l">Status</div><div class="v ok-t">Applied</div></div></div>'
+      + (r.type === 'signal' ? '<div class="row" style="margin-top:10px"><button type="button" class="btn primary" data-act="open-signal">Open the MATCH ' + r.signal.digit + ' signal →</button><button type="button" class="btn" data-act="open-matches">Matches / Differs</button></div>' : '<div class="row" style="margin-top:10px"><button type="button" class="btn primary" data-act="open-matches">Open Matches / Differs →</button></div>')
       + (m && m.lagEma != null ? '<div class="meta-line" style="margin-top:8px">feed lag ' + Math.round(m.lagEma * 1000) + ' ms · hot digit ' + top.digit + ' · z ' + top.stats.zFull[top.digit].toFixed(2) + '</div>' : '') + '</div>';
   }
 
@@ -89,6 +90,8 @@
       + '<button type="button" class="btn primary wide" data-act="scan"' + (running ? ' disabled' : '') + '>' + (running ? 'Scanning…' : 'Scan volatility markets') + '</button>' + phases(state.scan) + '</div>'
       + autoCard(state) + rankTable(state);
     el.querySelector('[data-act="scan"]').addEventListener('click', () => act.scan({ from: 'scanner' }));
+    const os = el.querySelector('[data-act="open-signal"]'); if (os) os.addEventListener('click', () => act.navigate('signal'));
+    const om = el.querySelector('[data-act="open-matches"]'); if (om) om.addEventListener('click', () => act.navigate('matches'));
     const sel = el.querySelector('#scan-market'); if (sel && !running) sel.addEventListener('change', (e) => act.setActive(e.target.value));
     el.querySelectorAll('tr[data-symbol]').forEach(tr => tr.addEventListener('click', () => act.setActive(tr.getAttribute('data-symbol'))));
     if (running) startRain(el.querySelector('#scan-rain')); else stopRain();
@@ -102,7 +105,7 @@
     const pct = el.querySelector('#scan-pct'); if (pct) pct.textContent = Math.round((s.progress || 0) * 100) + '%';
     const left = el.querySelector('#scan-left'); if (left) left.textContent = Math.max(0, (s.remainingMs || 0) / 1000).toFixed(1) + 's left';
     const lis = el.querySelectorAll('#scan-phases li'); s.phases.forEach((p, i) => { if (lis[i]) lis[i].className = p.state; });
-    const sel = el.querySelector('#scan-market'); if (sel && sel.options.length) sel.selectedIndex = Math.floor((s.progress || 0) * sel.options.length * 1.5) % sel.options.length;
+    const sel = el.querySelector('#scan-market'); if (sel && sel.options.length) { sel.selectedIndex = Math.floor((s.progress || 0) * sel.options.length * 1.5) % sel.options.length; const st = el.querySelector('#scan-state'); if (st) st.textContent = 'Auto-selecting: ' + sel.options[sel.selectedIndex].text; }
   }
 
   root.MS.ui.scanner = { mount(rootEl, actions) { el = rootEl; act = actions; }, render, renderProgress };
