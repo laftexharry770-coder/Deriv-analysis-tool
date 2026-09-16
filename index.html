@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<!-- BUILD: bump the ?v= stamp on every deploy so browsers fetch the new files (see tools/bump-version.py) -->
+<title>Binary Analysis Tool</title>
+<link rel="stylesheet" href="css/app.css?v=20260916h">
+</head>
+<body>
+<header class="topbar">
+  <button id="nav-toggle" class="icon-btn" type="button" aria-label="Menu" aria-controls="drawer" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+  </button>
+  <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor"/><path d="M6 14l3-4 3 3 2-5 4 6" stroke="#061627" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Binary Analysis Tool</span></div>
+  <button id="account-chip" class="acct-chip" type="button" hidden aria-label="Account"></button>
+  <div id="pills" class="pills" aria-live="polite"></div>
+  <button id="theme-toggle" class="icon-btn theme-btn" type="button" aria-label="Switch between light and dark theme" title="Light / dark theme"><span aria-hidden="true">☾</span></button>
+</header>
+
+<div id="scrim" class="scrim" hidden></div>
+<nav id="drawer" class="drawer" aria-label="Pages">
+  <div class="drawer-head">Analysis modules</div>
+  <a href="#dashboard" data-page="dashboard" class="active"><span class="nav-ic">▦</span>Dashboard</a>
+  <a href="#scanner" data-page="scanner"><span class="nav-ic">◎</span>Volatility Scanner</a>
+  <a href="#matches" data-page="matches"><span class="nav-ic">⇄</span>Matches / Differs</a>
+  <a href="#signal" data-page="signal"><span class="nav-ic">◈</span>Matches Signal</a>
+  <a href="#frequency" data-page="frequency"><span class="nav-ic">▥</span>Frequency Graph</a>
+  <a href="#accuracy" data-page="accuracy"><span class="nav-ic">◔</span>Accuracy</a>
+  <a href="#settings" data-page="settings"><span class="nav-ic">⚙</span>Settings</a>
+  <div class="drawer-head">Your account</div>
+  <a href="#account" data-page="account"><span class="nav-ic">◉</span>Account</a>
+  <a href="#upgrade" data-page="upgrade"><span class="nav-ic">★</span>Upgrade · $70/mo</a>
+  <a href="#support" data-page="support"><span class="nav-ic">✆</span>Support</a>
+  <a href="#admin" data-page="admin" id="nav-admin" hidden><span class="nav-ic">⚑</span>Admin</a>
+  <div class="drawer-foot">Signals only · no trades are placed</div>
+</nav>
+
+<div id="splash" class="splash" aria-live="polite"><div class="splash-card"><div class="splash-logo"><svg viewBox="0 0 24 24" width="40" height="40"><rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor"/><path d="M6 14l3-4 3 3 2-5 4 6" stroke="#061627" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="splash-name">Binary Analysis Tool</div><div class="splash-sub">INITIALIZING ANALYSIS ENGINE…</div><div class="progress"><div id="splash-bar"></div></div><div class="splash-pct" id="splash-pct">0%</div></div></div>
+<div id="landing" class="landing" hidden></div>
+<div id="auth-view" class="auth-view" hidden></div>
+<main class="main">
+  <div id="banner" class="banner" hidden></div>
+  <section id="page-dashboard" class="page"></section>
+  <section id="page-scanner" class="page" hidden></section>
+  <section id="page-matches" class="page" hidden></section>
+  <section id="page-signal" class="page" hidden></section>
+  <section id="page-frequency" class="page" hidden></section>
+  <section id="page-accuracy" class="page" hidden></section>
+  <section id="page-settings" class="page" hidden></section>
+  <section id="page-account" class="page" hidden></section>
+  <section id="page-upgrade" class="page" hidden></section>
+  <section id="page-support" class="page" hidden></section>
+  <section id="page-admin" class="page" hidden></section>
+</main>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<script src="js/config.js?v=20260916h"></script>
+<script src="js/util.js?v=20260916h"></script>
+<script src="js/stats.js?v=20260916h"></script>
+<script src="js/markets.js?v=20260916h"></script>
+<script src="js/signals.js?v=20260916h"></script>
+<script src="js/tracker.js?v=20260916h"></script>
+<script src="js/store.js?v=20260916h"></script>
+<script src="js/sim.js?v=20260916h"></script>
+<script src="js/feed.js?v=20260916h"></script>
+<script src="js/billing.js?v=20260916h"></script>
+<script src="js/access.js?v=20260916h"></script>
+<script src="js/ui/components.js?v=20260916h"></script>
+<script src="js/ui/shell.js?v=20260916h"></script>
+<script src="js/auth.js?v=20260916h"></script>
+<script src="js/ui/dashboard.js?v=20260916h"></script>
+<script src="js/ui/scanner.js?v=20260916h"></script>
+<script src="js/ui/matches.js?v=20260916h"></script>
+<script src="js/ui/signal.js?v=20260916h"></script>
+<script src="js/ui/frequency.js?v=20260916h"></script>
+<script src="js/ui/accuracy.js?v=20260916h"></script>
+<script src="js/ui/settings.js?v=20260916h"></script>
+<script src="js/ui/account.js?v=20260916h"></script>
+<script src="js/ui/upgrade.js?v=20260916h"></script>
+<script src="js/ui/admin.js?v=20260916h"></script>
+<script src="js/ui/landing.js?v=20260916h"></script>
+<script src="js/ui/support.js?v=20260916h"></script>
+<script src="js/main.js?v=20260916h"></script>
+</body>
+</html>
