@@ -21,15 +21,8 @@
   const DATA_PAGES = ['dashboard', 'frequency', 'matches'];
   const FORM_PAGES = ['settings', 'account', 'upgrade', 'admin', 'support'];
 
-  function nextScanDelayMs(state, settings, nowMs) {
-    const signal = state.signal;
-    if (settings.rescanOnExpiry && signal && signal._rescanPending) return 0;
-    // A LIVE signal is a hard scanner lock, even if its one-tick outcome has
-    // already resolved. Once it expires the periodic auto-rescan applies again.
-    if (signal && signal.status === 'live') return null;
-    if (!settings.autoRescan) return null;
-    return Math.max(0, settings.autoRescanSec * 1000 - (nowMs - (state.lastScanAt || 0)));
-  }
+  // Scans are user-initiated only (as in the reference tools): the scheduler never starts one.
+  function nextScanDelayMs() { return null; }
 
   function createApp(deps) {
     deps = deps || {};
@@ -262,13 +255,7 @@
       if (state.signal && !state.signal._expiryHandled && nowMs >= state.signal.expiresAt) {
         state.signal._expiryHandled = true; expiredNow = true;
         if (state.signal.status === 'live') modules.tracker.expireSignal(state.signal, nowMs);
-        if (state.settings.rescanOnExpiry) state.signal._rescanPending = true;
         persistSignals(); refreshMetrics();
-      }
-      const delay = nextScanDelayMs(state, state.settings, nowMs);
-      if (delay === 0 && state.scan.phase !== 'running' && premiumActive()) {
-        if (state.signal && state.signal._rescanPending) state.signal._rescanPending = false;
-        actions.scan({ from: 'scheduler' }); return;
       }
       if (expiredNow) renderAll(); else renderData();
     }

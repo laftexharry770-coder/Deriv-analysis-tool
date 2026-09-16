@@ -31,8 +31,8 @@
       + '<div class="field"><label for="horizonTicks">Evaluation horizon</label><select id="horizonTicks" name="horizonTicks">' + [1, 3, 5].map(h => '<option value="' + h + '"' + (Number(s.horizonTicks) === h ? ' selected' : '') + '>' + h + ' tick' + (h > 1 ? 's' : '') + '</option>').join('') + '</select><div class="hint">the Matches contract duration you trade</div></div>'
       + num('payoutMultiple', 'Payout multiple', s.payoutMultiple, 'used only for the break-even line', 'min="1" max="20" step="0.1"') + '</div></fieldset>'
       + '<fieldset><legend>Automation</legend><div class="field-row">'
-      + num('autoRescanSec', 'Auto-rescan interval (s)', s.autoRescanSec, '', 'min="5" max="600"') + num('scanAnimMs', 'Scan animation (ms)', s.scanAnimMs, '0 = instant', 'min="0" max="10000" step="100"') + '</div>'
-      + chk('autoRescan', 'Auto-rescan while no signal is live', s.autoRescan) + chk('rescanOnExpiry', 'Rescan immediately when a signal expires', s.rescanOnExpiry) + chk('sound', 'Play a sound when a signal fires', s.sound)
+      + num('scanAnimMs', 'Scan animation (ms)', s.scanAnimMs, '0 = instant', 'min="0" max="10000" step="100"') + '</div>'
+      + chk('sound', 'Play a sound when a signal fires', s.sound)
       + '</fieldset>'
       + '<div class="controls"><button type="submit" class="btn primary">Save &amp; reconnect</button><button type="button" class="btn ghost" data-act="reset">Reset to defaults</button>'
       + (state.storeAvailable ? '<span class="muted small">settings are saved in this browser</span>' : '<span class="warn-t small">storage unavailable — settings last for this session only</span>') + '</div></form>';

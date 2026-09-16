@@ -38,7 +38,7 @@
     const ranked = r && r.ranked ? r.ranked.slice(0, 3) : [];
     const running = state.scan && state.scan.phase === 'running';
     return '<div class="card"><div class="nosetup"><div class="t">' + (running ? 'SCANNING…' : (r ? 'NO SNIPER SETUP' : 'READY TO SCAN')) + '</div>'
-      + '<div class="muted small" style="margin-top:4px">' + (running ? 'ranking every market' : (r ? 'no market passes every gate right now — waiting' : 'press Re-scan market to rank every volatility index')) + '</div>'
+      + '<div class="muted small" style="margin-top:4px">' + (running ? 'ranking every market' : (r ? 'no market passes every gate right now — press Re-scan market to try again' : 'press Re-scan market to rank every volatility index')) + '</div>'
       + (ranked.length ? '<div class="miss">' + ranked.map(e => '<div class="m"><span>' + C.esc(e.name) + ' · hot ' + (e.digit == null ? '–' : e.digit) + '</span><span class="f">✗ ' + C.esc(e.failed.join(', ')) + '</span></div>').join('') + '</div>' : '') + '</div></div>';
   }
 
@@ -46,8 +46,6 @@
     const s = state.settings;
     const running = state.scan && state.scan.phase === 'running';
     return '<div class="card"><div class="controls"><button type="button" class="btn primary" data-act="scan"' + (running ? ' disabled' : '') + '>' + (running ? 'Scanning…' : 'Re-scan market') + '</button>'
-      + '<label class="toggle"><input type="checkbox" data-set="autoRescan"' + (s.autoRescan ? ' checked' : '') + '> Auto-rescan every <input type="number" min="5" max="600" data-set="autoRescanSec" value="' + Number(s.autoRescanSec) + '"> s</label>'
-      + '<label class="toggle"><input type="checkbox" data-set="rescanOnExpiry"' + (s.rescanOnExpiry ? ' checked' : '') + '> Rescan on expiry</label>'
       + '<label class="toggle"><input type="checkbox" data-set="sound"' + (s.sound ? ' checked' : '') + '> Sound</label></div></div>';
   }
 

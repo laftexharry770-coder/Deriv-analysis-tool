@@ -2,17 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const app = require('../js/main.js');
 
-test('nextScanDelayMs prioritizes expiry, then the recurring interval', () => {
+test('scans are never scheduled automatically', () => {
   const settings = { autoRescan: true, autoRescanSec: 30, rescanOnExpiry: true };
-
-  assert.equal(app.nextScanDelayMs({ signal: { status: 'expired', _rescanPending: true }, lastScanAt: 0 }, settings, 100_000), 0);
-  assert.equal(app.nextScanDelayMs({ signal: null, lastScanAt: 90_000 }, settings, 100_000), 20_000);
-  assert.equal(app.nextScanDelayMs({ signal: null, lastScanAt: 60_000 }, settings, 100_000), 0);
-  assert.equal(app.nextScanDelayMs({ signal: { status: 'live' }, lastScanAt: 0 }, settings, 100_000), null);
-  assert.equal(app.nextScanDelayMs({ signal: null, lastScanAt: 0 }, Object.assign({}, settings, { autoRescan: false }), 100_000), null);
-  // an expired signal no longer locks the scanner: the periodic interval applies again
-  assert.equal(app.nextScanDelayMs({ signal: { status: 'expired' }, lastScanAt: 90_000 }, Object.assign({}, settings, { rescanOnExpiry: false }), 100_000), 20_000);
-  assert.equal(app.nextScanDelayMs({ signal: { status: 'resolved', outcome: 'win' }, lastScanAt: 50_000 }, settings, 100_000), 0);
+  assert.equal(app.nextScanDelayMs({ signal: { status: 'expired', _rescanPending: true }, lastScanAt: 0 }, settings, 100_000), null);
+  assert.equal(app.nextScanDelayMs({ signal: null, lastScanAt: 60_000 }, settings, 100_000), null);
 });
 
 class FakeFeed {
@@ -123,7 +116,7 @@ test('changing simulator setting stops the old feed and starts a new feed', () =
   instance.stop();
 });
 
-test('start arms the recurring scan interval from the startup time', () => {
+test('start records the startup time as lastScanAt without arming any scan', () => {
   const settings = { simulator: true, scanAnimMs: 0, autoRescan: true, autoRescanSec: 30, rescanOnExpiry: true, appId: '1089', token: '', window: 200, recent: 50, mode: 'standard', kappa: 200, minSample: 180, minZFull: 1.5, minZRecent: 1, recencyGate: true, maxSinceLast: 10, maxLagSec: 1.5, cooldownSec: 20, entryWindowTicks: 5, horizonTicks: 1, payoutMultiple: 8.9, accuracySource: 'all' };
   const instance = app.createApp({
     store: makeStore(settings), makeFeed: () => new FakeFeed('sim'), now: () => 100_000,
@@ -132,11 +125,11 @@ test('start arms the recurring scan interval from the startup time', () => {
 
   instance.start();
   assert.equal(instance.state.lastScanAt, 100_000);
-  assert.equal(app.nextScanDelayMs(instance.state, instance.state.settings, 100_000), 30_000);
+  assert.equal(app.nextScanDelayMs(instance.state, instance.state.settings, 100_000), null);
   instance.stop();
 });
 
-test('scheduler tick expires a live signal and rescans immediately when rescanOnExpiry is on', () => {
+test('scheduler tick expires a live signal but does not scan again by itself', () => {
   const feed = new FakeFeed('sim');
   const store = makeStore({ simulator: true, scanAnimMs: 0, autoRescan: true, autoRescanSec: 30, rescanOnExpiry: true, appId: '1089', token: '', window: 200, recent: 50, mode: 'standard', kappa: 200, minSample: 180, minZFull: 1.5, minZRecent: 1, recencyGate: true, maxSinceLast: 10, maxLagSec: 1.5, cooldownSec: 20, entryWindowTicks: 5, horizonTicks: 1, payoutMultiple: 8.9, accuracySource: 'all' });
   let now = 500_000; const intervals = [];
@@ -151,11 +144,11 @@ test('scheduler tick expires a live signal and rescans immediately when rescanOn
   now = 505_000; tick(); assert.equal(first.status, 'live');
   // keep the market fresh so it is not stale at expiry; cooldown (20 s) blocks a re-fire on the same market
   feed.emit('tick', { symbol: 'R_100', epoch: 505, quote: 800.03, pipSize: 2 });
+  const scansBefore = instance.state.lastScanAt;
   now = 510_500; tick();
   assert.equal(first.status, 'expired');
-  assert.equal(instance.state.lastScanAt, 510_500, 'a rescan ran at expiry');
-  assert.equal(instance.state.scan.phase, 'done');
-  assert.equal(instance.state.signal, null, 'cooldown blocks the same market, so no new signal');
+  assert.equal(instance.state.lastScanAt, scansBefore, 'no scan was started by the scheduler');
+  assert.equal(instance.state.signal, first, 'the expired signal stays on screen until the user re-scans');
   instance.stop();
 });
 

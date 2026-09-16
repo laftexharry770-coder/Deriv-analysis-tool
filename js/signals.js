@@ -13,7 +13,7 @@
     minSample: 180, minZFull: 1.5, minZRecent: 1.0, recencyGate: true, maxSinceLast: 10,
     maxLagSec: 1.5, cooldownSec: 20,
     entryWindowTicks: 5, horizonTicks: 1,
-    autoRescan: true, autoRescanSec: 30, rescanOnExpiry: true, scanAnimMs: 3500,
+    autoRescan: false, autoRescanSec: 30, rescanOnExpiry: false, scanAnimMs: 3500, // scans run only when the user presses the button
     payoutMultiple: 8.9,
     appId: '1089', token: '', simulator: false, sound: false,
     activeSymbol: null, accuracySource: 'all'
