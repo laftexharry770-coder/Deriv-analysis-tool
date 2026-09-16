@@ -53,7 +53,8 @@
   const me = () => call('account', { action: 'me' });
 
   // ---------- auth screen ----------
-  function waVerify(email) { const text = 'Hello, please verify my ' + cfg.brand + ' account (' + (email || 'my email') + '). I could not receive the email code.'; return cfg.contact.whatsappLink + '?text=' + encodeURIComponent(text); }
+  let pendingAccountId = '';
+  function waVerify(email) { const text = 'Hello, please verify my ' + cfg.brand + ' account ' + (pendingAccountId ? pendingAccountId + ' ' : '') + '(' + (email || 'my email') + '). I could not receive the email code.'; return cfg.contact.whatsappLink + '?text=' + encodeURIComponent(text); }
   function contactLine() {
     return '<div class="auth-contact">Help: <a href="' + C.esc(cfg.contact.whatsappLink) + '" target="_blank" rel="noopener">WhatsApp ' + C.esc(cfg.contact.whatsapp) + '</a> · <a href="mailto:' + C.esc(cfg.contact.email) + '">' + C.esc(cfg.contact.email) + '</a></div>';
   }
@@ -109,7 +110,7 @@
         const r = await signup({ email: v.email, phone, countryCode: v.country_code, password: v.password });
         if (!r.ok) { notify(msg(r.error, r.detail), 'bad'); return; }
         if (r.admin) { mode = 'login'; notify('Owner account ' + r.account_id + ' is ready — log in to continue.', 'ok'); return; }
-        mode = 'verify'; resendAt = Date.now() + 60000;
+        mode = 'verify'; resendAt = Date.now() + 60000; pendingAccountId = r.account_id || '';
         notify(r.mailed ? 'Account ' + r.account_id + ' created — enter the code we emailed you.' : 'Account ' + r.account_id + ' created. ' + msg(r.reason), r.mailed ? 'ok' : 'warn');
       } else if (mode === 'verify') {
         const r = await verifyEmail({ email: v.email, code: v.code });

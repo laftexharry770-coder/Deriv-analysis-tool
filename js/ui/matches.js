@@ -39,6 +39,14 @@
       + '<div class="muted small" style="margin-top:8px">Pro weights the most recent 60% of the sample more heavily when ranking digits.</div></div></div>';
   }
 
+  // the real-time engine's current read of the active stream (re-estimated on every tick)
+  function engineLine(state) {
+    const dp = state.activeDeep;
+    if (!dp || !dp.best) return '<span class="muted">Live engine: waiting for ticks…</span>';
+    const b = dp.best;
+    return '<span class="eng-l">LIVE ENGINE</span> most probable next digit <b class="eng-d">' + b.digit + '</b> <span class="eng-p">' + (100 * b.p).toFixed(1) + '%</span> <span class="muted">· edge z ' + b.z.toFixed(2) + ' · ' + Math.round(dp.nEff) + ' weighted live ticks</span>';
+  }
+
   function liveStream(state) {
     const st = activeStats(state), m = market(state);
     const sim = state.feedStatus && state.feedStatus.kind === 'sim';
@@ -49,6 +57,7 @@
     // while a call is open the circle holds the predicted digit (as in the reference); otherwise it follows the latest tick
     const circleDigit = held ? held.digit : (st && st.lastDigit != null ? st.lastDigit : '–');
     return '<div class="card" id="md-stream"><div class="card-head"><span class="pill status">LIVE DIGIT STREAM</span></div>' + strip
+      + '<div class="engine-line" id="md-engine">' + engineLine(state) + '</div>'
       + '<div class="pred-row"><button type="button" class="btn pred-btn" data-predict="differs"' + (running ? ' disabled' : '') + '>DIFFER</button>'
       + '<div class="live-circle' + (held ? ' locked' : '') + '" id="md-live"><span>' + circleDigit + '</span></div>'
       + '<button type="button" class="btn primary pred-btn" data-predict="matches"' + (running ? ' disabled' : '') + '>MATCH</button></div>'
@@ -72,6 +81,7 @@
       h += '<div class="pred-result"><div class="digit-big">' + s.digit + '</div><div><div class="market-name">' + (s.contract === 'differs' ? 'DIFFER ' : 'MATCH ') + s.digit + '</div><div class="market-sym">' + C.esc(s.symbol) + ' · ' + C.esc(s.mode) + ' mode · horizon ' + s.horizonTicks + ' tick' + (s.horizonTicks > 1 ? 's' : '') + '</div>'
         + '<div class="headline" style="margin-top:6px"><div><span class="str-l">Signal strength</span><span class="str-v">' + s.strength.toFixed(1) + '</span></div><div class="prob">appearance rate <b>' + C.pct(s.probEst) + '</b> vs ' + (s.contract === 'differs' ? '90%' : '10%') + ' base</div></div></div></div>'
         + C.bandBar(s.strength) + '<div class="reason" style="margin-top:8px">' + C.esc(s.reason) + '</div>'
+        + ((s.alternatives || []).length ? '<div class="alts"><span class="kpi-l">' + (s.contract === 'differs' ? 'Also unlikely' : 'Next most likely') + '</span>' + s.alternatives.map(a => '<span class="alt"><b>' + a.digit + '</b> ' + (100 * a.p).toFixed(1) + '%</span>').join('') + '</div>' : '')
         + '<div class="row" style="margin-top:6px">' + (s.outcome ? C.pill(s.outcome.toUpperCase() + ' · outcome digit ' + s.resolvedDigit, s.outcome === 'win' ? 'ok' : 'bad') : C.pill(open ? 'PENDING · scored on the next ' + s.horizonTicks + ' tick' + (s.horizonTicks > 1 ? 's' : '') : 'PENDING', 'warn')) + '<span class="muted small">recorded in Accuracy as a manual ' + (s.contract === 'differs' ? 'Differs' : 'Matches') + ' call</span></div>';
     }
     return h + '</div>';
@@ -105,6 +115,7 @@
     const c = el.querySelector('#md-live span');
     if (c) { const v = held ? String(held.digit) : (st.lastDigit == null ? '–' : String(st.lastDigit)); if (c.textContent !== v) c.textContent = v; const wrap = c.parentNode; if (wrap && wrap.classList) wrap.classList.toggle('locked', !!held); }
     const tiles = el.querySelector('#md-tiles'); if (tiles && st.last5) { const html = st.last5.map(d => '<span>' + d + '</span>').join(''); if (tiles.innerHTML !== html) tiles.innerHTML = html; }
+    const eng = el.querySelector('#md-engine'); if (eng) { const html = engineLine(state); if (eng.innerHTML !== html) eng.innerHTML = html; }
     const u = el.querySelector('#md-updated'); if (u && st.lastEpoch) { const ago = Math.max(0, Math.round(Date.now() / 1000 - st.lastEpoch)); u.textContent = ago <= 1 ? 'updated just now' : 'updated ' + ago + 's ago'; }
     const cir = el.querySelector('.circles'); if (cir) cir.outerHTML = C.digitCircles(st, { lastDigit: st.lastDigit });
     const bars = el.querySelector('.bars'); if (bars) bars.outerHTML = C.digitBars(st, { highlight: st.hot });

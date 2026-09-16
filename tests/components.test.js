@@ -22,7 +22,7 @@ test('digitCircles, bandBar, countdownRing, pill, table, esc, kpi, gateList, spa
   assert.match(C.table(['A'], [['x']], { rowAttrs: () => 'data-symbol="R_10"' }), /<tr data-symbol="R_10">/);
   assert.equal(C.esc('<b>&"\''), '&lt;b&gt;&amp;&quot;&#39;');
   assert.match(C.kpi('Wins', '3', 'of 10'), /class="kpi"/);
-  const g = C.gateList({ sample: { pass: true, value: 200, need: 180 }, zFull: { pass: false, value: 0.4, need: 1.5 } });
+  const g = C.gateList({ sample: { pass: true, value: 200, need: 180 }, edge: { pass: false, value: 0.4, need: 2 } });
   assert.match(g, /gate pass/); assert.match(g, /gate fail/); assert.match(g, /0\.40/);
   assert.match(C.sparkline([0.1, 0.5, 0.33], { w: 100, h: 30 }), /<polyline/); assert.match(C.sparkline([], {}), /<svg/);
 });

@@ -35,7 +35,7 @@ test('discovers, filters, sorts and subscribes volatility symbols', () => {
   assert.deepEqual(uni.map(s => s.symbol), ['R_10', '1HZ10V', 'R_100']);
   assert.equal(uni[0].pipSize, 3);
   flush();
-  const subs = ws.sent.filter(m => m.ticks_history); assert.equal(subs.length, 3); assert.equal(subs[0].count, 300); assert.equal(subs[0].subscribe, 1); assert.equal(subs[0].style, 'ticks');
+  const subs = ws.sent.filter(m => m.ticks_history); assert.equal(subs.length, 3); assert.equal(subs[0].count, 1000); // the public socket's maximum: the live engine starts with depth assert.equal(subs[0].subscribe, 1); assert.equal(subs[0].style, 'ticks');
   ws.recv({ msg_type: 'history', echo_req: { ticks_history: 'R_100' }, history: { prices: ['841.3', 841.36], times: [1, 3] }, pip_size: 2, subscription: { id: 'abc' } });
   assert.deepEqual(ev.find(e => e[0] === 'history')[1], { symbol: 'R_100', prices: [841.3, 841.36], times: [1, 3], pipSize: 2 });
   ws.recv({ msg_type: 'tick', tick: { symbol: 'R_100', epoch: 5, quote: 841.4, pip_size: 2, id: 'abc' } });

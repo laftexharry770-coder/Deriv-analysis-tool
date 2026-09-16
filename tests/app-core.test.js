@@ -47,8 +47,10 @@ function makeStore(settings) {
   };
 }
 
+function rnd(n, seed) { let x = (seed || 12345) >>> 0; const out = []; for (let i = 0; i < n; i++) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; out.push((x >>> 8) % 10); } return out; }
 function hotHistory(symbol) {
-  const digits = Array.from({ length: 150 }, (_, i) => i % 10).concat(Array(50).fill(7));
+  // pseudo-random stream with digit 7 clearly hot and the newest ticks all sevens (a periodic 0..9 base would fake a transition edge)
+  const digits = rnd(150, 21).concat(Array(50).fill(7));
   return {
     symbol,
     prices: digits.map(d => 800 + d / 100),
@@ -170,7 +172,7 @@ test('animated scan computes the signal when the animation finishes, so validity
   const sig = instance.state.signal;
   assert.equal(sig.issuedAt, 703_600, 'issued when the animation finished');
   assert.equal(sig.issueEpoch, 703, 'anchored to the newest tick at finish time');
-  assert.deepEqual(Object.keys(sig.gates), ['sample', 'zFull', 'zRecent', 'recency', 'feed', 'cooldown']);
+  assert.deepEqual(Object.keys(sig.gates), ['sample', 'edge', 'recency', 'feed', 'cooldown']);
   assert.ok(Object.values(sig.gates).every(g => g.pass));
   instance.stop();
 });

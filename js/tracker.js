@@ -64,7 +64,7 @@
     };
   }
 
-  const COLS = ['id', 'source', 'contract', 'manual', 'issuedAt', 'symbol', 'market', 'digit', 'strength', 'band', 'probEst', 'zFull', 'zRecent', 'deviationScore', 'rank', 'universeSize', 'window', 'mode', 'tickInterval', 'validFor', 'horizonTicks', 'status', 'outcome', 'entryEpoch', 'resolvedEpoch', 'resolvedDigit', 'hitWithinWindow', 'reason'];
+  const COLS = ['id', 'source', 'contract', 'manual', 'issuedAt', 'symbol', 'market', 'digit', 'strength', 'band', 'probEst', 'zFull', 'nEff', 'deviationScore', 'rank', 'universeSize', 'window', 'mode', 'tickInterval', 'validFor', 'horizonTicks', 'status', 'outcome', 'entryEpoch', 'resolvedEpoch', 'resolvedDigit', 'hitWithinWindow', 'reason'];
   function toCSV(signals) {
     const esc = v => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     return COLS.join(',') + '\n' + signals.map(s => COLS.map(c => esc(s[c])).join(',')).join('\n') + '\n';

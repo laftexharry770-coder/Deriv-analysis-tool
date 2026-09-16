@@ -27,10 +27,12 @@
       + '<div class="eyebrow-line">RECOMMENDED MATCH</div><div class="signal-mid"><div class="digit-big">' + s.digit + '</div><div><div class="market-name">Trade MATCH ' + s.digit + ' · ' + C.esc(s.market) + '</div><div class="market-sym">' + C.esc(s.symbol) + ' · rank #' + s.rank + ' of ' + s.universeSize + ' · ' + C.esc(s.mode) + ' mode</div>'
       + '<div class="headline" style="margin-top:8px"><div><span class="str-l">Signal strength</span><span class="str-v">' + s.strength.toFixed(1) + '</span></div><div class="prob">appearance rate <b>' + C.pct(s.probEst) + '</b> vs 10% base</div></div></div></div>'
       + C.bandBar(s.strength)
-      + '<div class="signal-foot">' + C.countdownRing(cd.remainingSec, cd.totalSec) + '<div><div class="reason"><b>Digit ' + s.digit + ' dominated the last ' + s.window + ' ticks</b> — highest frequency signature detected in the sweep.</div><div class="reason muted">' + C.esc(s.reason) + '</div>'
-      + '<div class="meta-line">valid for ' + s.validFor + 's · entry window ' + s.entryWindowTicks + ' ticks × ' + s.tickInterval.toFixed(1) + 's · horizon ' + s.horizonTicks + ' tick' + (s.horizonTicks > 1 ? 's' : '') + '</div>'
+      + '<div class="signal-foot">' + C.countdownRing(cd.remainingSec, cd.totalSec) + '<div><div class="reason"><b>Digit ' + s.digit + ' leads the live stream</b> — the most probable next digit across ' + s.window + ' live ticks' + (s.sniper === false ? ' (watch: below the sniper threshold)' : '') + '.</div><div class="reason muted">' + C.esc(s.reason) + '</div>'
+      + '<div class="meta-line">valid for ' + s.validFor + 's · entry window ' + s.entryWindowTicks + ' ticks × ' + s.tickInterval.toFixed(1) + 's · horizon ' + s.horizonTicks + ' tick' + (s.horizonTicks > 1 ? 's' : '') + (s.nEff ? ' · ' + s.nEff + ' weighted live ticks' : '') + '</div>'
       + (s.outcome ? '<div class="meta-line">outcome digit ' + s.resolvedDigit + ' → ' + s.outcome.toUpperCase() + (s.hitWithinWindow != null ? ' · within window: ' + (s.hitWithinWindow ? 'yes' : 'no') : '') + '</div>' : '')
-      + '</div></div>' + (gates ? C.gateList(gates) : '') + '</div>';
+      + '</div></div>'
+      + ((s.alternatives || []).length ? '<div class="alts"><span class="kpi-l">Next most likely</span>' + s.alternatives.map(a => '<span class="alt"><b>' + a.digit + '</b> ' + (100 * a.p).toFixed(1) + '%</span>').join('') + '</div>' : '')
+      + (gates ? C.gateList(gates) : '') + '</div>';
   }
 
   function noSetup(state) {

@@ -39,7 +39,8 @@ Live site: <https://laftexharry770-coder.github.io/Deriv-analysis-tool/>
 ## How a user gets in
 
 Landing page → Create account (email, phone, password) → 6-digit code by email (or **Verify via WhatsApp**
-if email is not working: the owner uses Admin → *Verify any user*) → Upgrade: pay by Skrill / Trust Wallet /
+if email is not working: the owner searches the user in Admin → *Users* and presses **Confirm email**, which lets
+them log in without a code; *Verify now* additionally grants PREMIUM) → Upgrade: pay by Skrill / Trust Wallet /
 Binance / bank / local mobile money (picked from the phone's country) → submit "I have paid" → owner approves →
 activation code by email or WhatsApp → Account → Activate → **PREMIUM ✓** for 30 days.
 
@@ -50,12 +51,18 @@ Frequency Graph · Accuracy · Settings · Account · Upgrade · Support · Admi
 
 ## What the numbers mean
 
-- **The digit** — the reference tool's rule: count how often each digit appeared in the sample (Sample size, default
-  200 ticks; PRO weighs the newest 60 % double), rank the digits by that appearance rate and pick the top one
-  (DIFFER: the bottom one). Ties go to the digit seen most recently.
-- **Signal strength (0–100)** — percentile of that digit's z-score against the 10 % uniform baseline. Not a win probability.
-- **appearance rate** — the digit's share of the sample (for DIFFER: the share of the other nine digits), always shown
-  against the 10 % / 90 % base. Digits are random: the next tick is never guaranteed, which is why Accuracy exists.
+- **The digit** — the real-time engine (`js/deep.js`) works on each market's LIVE tick stream (seeded with the
+  1 000 newest ticks Deriv hands over on connect, then every tick as it arrives). For every digit it pools two views
+  of the same real data: a recency-weighted appearance rate (newest ticks weigh most; PRO weighs them harder) and the
+  transition view (what has followed the current last digit so far), both shrunk toward the 10 % baseline. The
+  digit with the highest pooled probability is the prediction (DIFFER: the lowest). The Scanner runs the same engine
+  on all markets at once and applies the market whose top digit carries the strongest **edge z**; a MATCHES signal
+  (sniper entry) is only issued when that pick also passes every gate (live ticks, edge ≥ threshold, digit seen
+  recently, live feed, cooldown) — otherwise the card says WATCH.
+- **Signal strength (0–100)** — percentile of the pick's edge z against the 10 % uniform baseline. Not a win probability.
+- **appearance rate / probability** — the engine's pooled probability for the digit (DIFFER: one minus it), always
+  shown against the 10 % / 90 % base with the next most likely digits beside it. Digits are random: the next tick
+  is never guaranteed, which is why Accuracy scores every call against the real tick that followed.
 - **No latency figures** — the tool does not measure or gate on tick lag; the live circle and strip repaint on every
   tick of the active market, and only the parts that changed are redrawn (nothing stalls while you scroll on a phone).
 - **Accuracy** — real win-rate of every call the tool issued, scored on the actual tick that followed, with a 95 % interval.

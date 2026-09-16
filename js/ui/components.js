@@ -70,11 +70,10 @@
     return '<div class="kpi' + (kind ? ' ' + esc(kind) : '') + '"><div class="kpi-l">' + esc(label) + '</div><div class="kpi-v">' + value + '</div>' + (sub ? '<div class="kpi-s">' + sub + '</div>' : '') + '</div>';
   }
 
-  const GATE_LABELS = { sample: 'Sample size', zFull: 'z (full window)', zRecent: 'z (recent window)', recency: 'Digit seen within', feed: 'Feed live', cooldown: 'Cooldown' };
+  const GATE_LABELS = { sample: 'Live ticks', edge: 'Edge z (live engine)', recency: 'Digit seen within', feed: 'Feed live', cooldown: 'Cooldown' };
   const GATE_FMT = {
     sample: g => g.value + ' / ' + g.need + ' ticks',
-    zFull: g => num(g.value) + ' ≥ ' + num(g.need, 1),
-    zRecent: g => num(g.value) + ' ≥ ' + num(g.need, 1),
+    edge: g => num(g.value) + ' ≥ ' + num(g.need, 1),
     recency: g => (g.value == null ? '–' : g.value + ' ticks') + ' ≤ ' + g.need,
     feed: g => g.pass ? 'live ticks' : (g.value || 'stale'),
     cooldown: g => (g.value > 86400 ? 'no prior signal' : g.value + ' s') + ' ≥ ' + g.need + ' s'

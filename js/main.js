@@ -7,17 +7,17 @@
   'use strict';
   const isNode = typeof require === 'function' && typeof module !== 'undefined';
   const modules = isNode ? {
-    MarketBook: require('./markets.js').MarketBook, stats: require('./stats.js'), signals: require('./signals.js'), tracker: require('./tracker.js'),
+    MarketBook: require('./markets.js').MarketBook, stats: require('./stats.js'), deep: require('./deep.js'), signals: require('./signals.js'), tracker: require('./tracker.js'),
     store: require('./store.js'), SimFeed: require('./sim.js').SimFeed, DerivFeed: require('./feed.js').DerivFeed, access: require('./access.js')
   } : {
-    MarketBook: root.MS.markets.MarketBook, stats: root.MS.stats, signals: root.MS.signals, tracker: root.MS.tracker,
+    MarketBook: root.MS.markets.MarketBook, stats: root.MS.stats, deep: root.MS.deep, signals: root.MS.signals, tracker: root.MS.tracker,
     store: root.MS.store, SimFeed: root.MS.sim.SimFeed, DerivFeed: root.MS.feed.DerivFeed, access: root.MS.access
   };
   const CFG = (root.MS && root.MS.config) || { freePages: ['dashboard', 'frequency', 'account', 'upgrade', 'settings'], priceUsd: 70, premiumDays: 30, contact: {} };
 
-  const PHASE_LABELS = ['Scanning volatility markets', 'Collecting recent tick data', 'Extracting last digits', 'Comparing digit distributions', 'Checking sniper gates', 'Selecting the best market'];
+  const PHASE_LABELS = ['Scanning volatility markets', 'Reading the live tick streams', 'Weighing every digit by recency', 'Comparing digit distributions', 'Checking sniper gates', 'Selecting the best market'];
   const ALL_PAGES = ['dashboard', 'scanner', 'matches', 'signal', 'frequency', 'accuracy', 'settings', 'account', 'upgrade', 'support', 'admin'];
-  const PREDICT_STEPS = ['Pulling Deriv tick history', 'Counting appearances per digit', 'Ranking digits by frequency', 'Comparing against the 10% baseline', 'Estimating win probability'];
+  const PREDICT_STEPS = ['Reading the live Deriv tick stream', 'Weighing every digit by recency', 'Checking what followed the last digit', 'Comparing against the 10% baseline', 'Estimating the next-digit probability'];
   const DATA_PAGES = ['dashboard', 'frequency', 'matches'];
   const FORM_PAGES = ['settings', 'account', 'upgrade', 'admin', 'support'];
 
@@ -40,7 +40,7 @@
     const state = {
       settings: Object.assign({}, modules.signals.DEFAULT_SETTINGS), page: 'dashboard',
       feedStatus: { state: 'offline', kind: 'live' }, latency: { rttMs: null, offsetSec: null },
-      book: new modules.MarketBook(), active: null, activeStats: null, overview: [], freq: { mode: 'full' },
+      book: new modules.MarketBook(), active: null, activeStats: null, activeDeep: null, overview: [], freq: { mode: 'full' },
       scan: { phase: 'idle', progress: 0, remainingMs: 0, phases: idlePhases(), result: null },
       signal: null, countdown: { remainingSec: 0, totalSec: 0 }, signals: [],
       metrics: modules.tracker.metrics([], { payoutMultiple: modules.signals.DEFAULT_SETTINGS.payoutMultiple, source: 'all' }),
@@ -54,7 +54,12 @@
     function idlePhases() { return PHASE_LABELS.map(label => ({ label, state: 'waiting' })); }
     function activeMarket() { return state.active ? state.book.get(state.active) : null; }
     function computeStatsFor(market) { return market ? modules.stats.computeStats(market.ticks, Object.assign({}, state.settings, { symbol: market.symbol })) : null; }
-    function refreshDerived() { state.overview = state.book.all().map(m => Object.assign({}, m, { stats: computeStatsFor(m) })); state.activeStats = computeStatsFor(activeMarket()); }
+    function refreshDerived() {
+      state.overview = state.book.all().map(m => Object.assign({}, m, { stats: computeStatsFor(m) }));
+      const am = activeMarket();
+      state.activeStats = computeStatsFor(am);
+      state.activeDeep = am && am.ticks.length ? modules.deep.analyze(am.ticks, { mode: state.settings.mode }) : null;
+    }
     function refreshMetrics() { state.metrics = modules.tracker.metrics(state.signals, { payoutMultiple: state.settings.payoutMultiple, source: state.accuracySource }); }
     function persistSignals() { store.saveSignals(state.signals); state.storeAvailable = !!store.available; }
     function persistSettings() { state.settings = store.saveSettings(state.settings); state.storeAvailable = !!store.available; }
@@ -241,9 +246,10 @@
         toast('MATCH ' + signal.digit + ' on ' + signal.market, 'ok'); playSignalSound();
       } else {
         state.signal = null;
-        const top = result && result.ranked && result.ranked[0];
-        if (top) { state.active = top.symbol; state.settings.activeSymbol = top.symbol; persistSettings(); }
+        const pick = result && result.pick;
+        if (pick) { state.active = pick.symbol; state.settings.activeSymbol = pick.symbol; persistSettings(); toast('Most probable digit ' + pick.digit + ' on ' + pick.name + ' (' + (100 * pick.p).toFixed(1) + '%)', 'info'); }
       }
+      state.scan.live = null;
       if (state.scan.navigateOnFinish) actions.navigate('signal'); else renderAll();
     }
     function runScanProgress() {
@@ -253,6 +259,11 @@
       state.scan.progress = progress; state.scan.remainingMs = Math.max(0, duration - elapsed);
       updateScanPhases(progress);
       if (progress >= 1) { finishScan(); return; }
+      if (progress > 0.15 && now() - (state.scan.liveAt || 0) >= 400) {
+        state.scan.liveAt = now();
+        const r = modules.signals.scan(state.book.all(), state.settings, now(), feed ? feed.kind : 'live');
+        state.scan.live = r.pick ? { symbol: r.pick.symbol, name: r.pick.name, digit: r.pick.digit, p: r.pick.p } : null;
+      }
       const sc = root.MS.ui && root.MS.ui.scanner;
       if (state.page === 'scanner' && sc && sc.renderProgress) sc.renderProgress(state); else renderPage(state.page);
     }

@@ -1,5 +1,5 @@
 // admin: owner-only actions. Caller must be signed in with the owner email (ADMIN_EMAILS); a stored is_admin flag alone grants nothing.
-// list_claims · approve_claim · reject_claim · verify_user · send_activation · revoke · list_users · get_settings · save_settings
+// list_claims · approve_claim · reject_claim · verify_user · confirm_email · send_activation · revoke · list_users · get_settings · save_settings
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { CORS, json, fail, serviceClient, userFromRequest, readBody, normEmail, validEmail, issueCode, grantPremium, isAdminEmail, PREMIUM_DAYS } from '../_shared/common.ts';
 import { mailConfigured, sendMail, codeEmail } from '../_shared/mail.ts';
@@ -53,6 +53,20 @@ Deno.serve(async (req) => {
       if (!p) return fail('NO_PROFILE', 404);
       const d = await activationFor(sb, p);
       return json({ ok: true, status, ...d });
+    }
+
+    if (action === 'confirm_email') {
+      // the WhatsApp path for a user whose code never arrived: confirm the address so they can log in (no premium)
+      const email = normEmail(body.email);
+      if (!validEmail(email)) return fail('EMAIL_INVALID');
+      const p = await profileByEmail(sb, email);
+      if (!p) return fail('NO_ACCOUNT', 404);
+      if (!p.email_verified) {
+        const { error } = await sb.auth.admin.updateUserById(p.id, { email_confirm: true });
+        if (error) return fail('CONFIRM_FAILED', 500, { detail: error.message });
+        await sb.from('profiles').update({ email_verified: true, updated_at: new Date().toISOString() }).eq('id', p.id);
+      }
+      return json({ ok: true, account_id: p.account_id, already: !!p.email_verified });
     }
 
     if (action === 'send_activation' || action === 'verify_user' || action === 'revoke') {

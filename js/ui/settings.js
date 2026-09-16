@@ -21,8 +21,7 @@
       + '<div class="field"><label>Analysis mode</label><div class="radios"><label><input type="radio" name="mode" value="standard"' + (s.mode === 'standard' ? ' checked' : '') + '> Standard</label><label><input type="radio" name="mode" value="pro"' + (s.mode === 'pro' ? ' checked' : '') + '> Pro — weights the newest 60% of the sample double</label></div></div>'
       + '</fieldset>'
       + '<fieldset><legend>Sniper gates</legend><div class="field-row">'
-      + num('minSample', 'Min sample (ticks)', s.minSample, '', 'min="20" max="1000"') + num('minZFull', 'Min z, full window', s.minZFull, 'default 1.5', 'min="0" max="6" step="0.1"')
-      + num('minZRecent', 'Min z, recent window', s.minZRecent, 'default 1.0', 'min="0" max="6" step="0.1"')
+      + num('minSample', 'Min live ticks', s.minSample, '', 'min="20" max="1000"') + num('minZFull', 'Min edge z (sniper threshold)', s.minZFull, 'default 2.0 — the edge of the top digit against the 10% baseline on the live engine', 'min="0" max="6" step="0.1"')
       + num('cooldownSec', 'Per-market cooldown (s)', s.cooldownSec, '', 'min="0" max="600"') + num('maxSinceLast', 'Digit seen within (ticks)', s.maxSinceLast, 'recency gate threshold', 'min="1" max="200"') + '</div>'
       + chk('recencyGate', 'Require the hot digit to have appeared recently', s.recencyGate)
       + '</fieldset>'

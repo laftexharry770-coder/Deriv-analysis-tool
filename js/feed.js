@@ -65,7 +65,7 @@
     _ping() { if (this._stopped || !this._ws || this._ws.readyState !== 1) return; this._pingSentAt = this._now(); this._send({ ping: 1 }); this._later(() => this._ping(), 30000); }
     _discover() { this._send({ active_symbols: 'brief', req_id: 3 }); }
     _subscribeAll() {
-      this._universe.forEach((s, i) => this._later(() => this._send({ ticks_history: s.symbol, count: 300, end: 'latest', style: 'ticks', subscribe: 1, req_id: this._reqId++ }), 60 * i));
+      this._universe.forEach((s, i) => this._later(() => this._send({ ticks_history: s.symbol, count: 1000, end: 'latest', style: 'ticks', subscribe: 1, req_id: this._reqId++ }), 60 * i));
     }
     useStaticList() { this._universe = STATIC_SYMBOLS.map(s => Object.assign({}, s)); this.emit('universe', this._universe.slice()); this._subscribeAll(); }
     _handle(m) {
